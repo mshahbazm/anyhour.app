@@ -1,0 +1,185 @@
+/* The briefing in the AI's chat: one card, sections divided by hairlines. */
+.briefing {
+  display: grid;
+  margin: 12px 0 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+}
+.briefing > * + * {
+  border-top: 1px solid var(--border);
+}
+.briefingSkeleton {
+  margin: 12px 0 14px;
+  border-radius: 14px;
+}
+
+/* Conversations waiting for a person, first and loudest. */
+.briefingAlert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  background: color-mix(in srgb, var(--warning) 9%, var(--card));
+  color: inherit;
+  font-size: 13.5px;
+  text-decoration: none;
+}
+.briefingAlert strong {
+  flex: 1;
+  font-weight: 600;
+}
+.briefingAlert svg {
+  color: var(--warning);
+}
+.briefingAlert:hover {
+  background: color-mix(in srgb, var(--warning) 14%, var(--card));
+}
+
+/* Visitors → started a chat → leads caught → leads won. */
+.briefingFunnel ol {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+}
+.briefingFunnel li {
+  position: relative;
+  display: grid;
+}
+.funnelStep {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 2px;
+  padding: 12px 12px 10px;
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+a.funnelStep:hover {
+  background: var(--muted);
+}
+.funnelStep strong {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.funnelStep > span:not(.funnelRate) {
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}
+.funnelStep small {
+  color: var(--muted-foreground);
+  font-size: 11.5px;
+}
+.funnelStep > button {
+  margin: 6px 0 0;
+}
+/* The step's share of the one before, between the two. */
+.funnelRate {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  transform: translateX(-50%);
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.briefingLeads header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 4px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+.briefingLeads header a {
+  color: var(--muted-foreground);
+  text-decoration: none;
+}
+.briefingLeads header a:hover {
+  color: var(--foreground);
+}
+.briefingLeads ul {
+  margin: 0;
+  padding: 0 6px 6px;
+  list-style: none;
+}
+.briefingLeads li a {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: inherit;
+  font-size: 13px;
+  text-decoration: none;
+}
+.briefingLeads li a:hover {
+  background: var(--muted);
+}
+.briefingLeadName {
+  flex-shrink: 0;
+  font-weight: 500;
+}
+.briefingLeadTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.briefingLeads time {
+  flex-shrink: 0;
+  color: var(--subtle-foreground);
+  font-size: 12px;
+}
+
+/* Customers answered · needed you · answers learned. */
+.briefingTotals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--muted) 55%, var(--card));
+}
+.briefingTotals a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  text-decoration: none;
+}
+.briefingTotals a:hover {
+  color: var(--foreground);
+}
+.briefingTotals strong {
+  color: var(--foreground);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .briefingFunnel ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .funnelRate {
+    position: static;
+    transform: none;
+    order: -1;
+  }
+}

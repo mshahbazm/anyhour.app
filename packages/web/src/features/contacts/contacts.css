@@ -1,0 +1,552 @@
+/* Contacts: people and one person's page. */
+.reachIcons {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 6px;
+  color: var(--subtle-foreground);
+}
+
+/* One contact */
+.contactPage {
+  gap: 20px;
+}
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.backLink:hover {
+  color: var(--foreground);
+}
+.contactHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+.contactAvatar {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 18px;
+  font-weight: 600;
+}
+.contactHeadText {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+.contactName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+.contactName .iconButton {
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.contactName:hover .iconButton,
+.contactName .iconButton:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .contactName .iconButton {
+    opacity: 1;
+  }
+}
+.nameForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.nameForm .textField {
+  flex: 1;
+  min-width: 180px;
+  font-size: 16px;
+}
+.nameForm .inlineError {
+  flex-basis: 100%;
+}
+.inlineLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  font: inherit;
+  text-decoration: none;
+}
+.inlineLink:hover {
+  color: var(--accent-brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.quietButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}
+.quietButton:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.contactGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 28px;
+}
+@media (max-width: 900px) {
+  .contactGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .contactSide {
+    order: -1;
+  }
+}
+.contactMain,
+.contactSide {
+  display: grid;
+  gap: 26px;
+  min-width: 0;
+}
+.contactSide {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+}
+.contactSection {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.contactSection h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.sectionEmpty,
+.sectionHint {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Ways to reach them */
+.identityList {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.identityItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  font-size: 13.5px;
+}
+.identityItem > svg {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+.identityItem a {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--foreground);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.identityItem a:hover {
+  color: var(--accent-brand);
+}
+.identityItem .iconButton {
+  width: 26px;
+  height: 26px;
+}
+.identityForm {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 8px;
+}
+.identityFormActions {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.takenNote {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.takenNote p {
+  margin: 0;
+}
+
+/* Memory */
+.factList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.factItem {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 13.5px;
+}
+.factItem p {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.factItem.is-editing textarea {
+  width: 100%;
+  height: auto;
+  padding: 8px 10px;
+  resize: vertical;
+}
+.factMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  color: var(--subtle-foreground);
+  font-size: 11.5px;
+}
+.factSource {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.factSource svg {
+  color: var(--accent-brand);
+}
+.factSource .inlineLink {
+  color: var(--muted-foreground);
+}
+.factTools {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+}
+.factTools .iconButton {
+  width: 26px;
+  height: 26px;
+}
+.factActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* Leads and conversations */
+.dealList {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dealList.is-nested {
+  margin: 4px 0 0 32px;
+}
+.dealRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--foreground);
+  text-align: left;
+  transition: border-color 120ms;
+}
+.dealRow:hover {
+  border-color: var(--input);
+  box-shadow: var(--shadow-sm);
+}
+.dealIcon {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+.dealText {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+.dealText strong,
+.dealText small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dealText strong {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.dealText small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+/* Recent activity */
+.contactTimeline {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.contactTimeline li {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+}
+.timelineDot {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--muted);
+}
+.contactTimeline li.is-agent .timelineDot {
+  border-color: color-mix(in srgb, var(--accent-brand) 30%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent-brand);
+}
+.contactTimeline p {
+  margin: 0;
+  line-height: 1.45;
+}
+.contactTimeline small {
+  color: var(--subtle-foreground);
+  font-size: 12px;
+}
+.contactTimeline small .inlineLink {
+  color: var(--muted-foreground);
+}
+
+/* People on a lead */
+.personList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.personItem {
+  display: grid;
+  gap: 4px;
+}
+.personRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.personName {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  text-align: left;
+}
+.personName strong {
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.personName small {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.personName:hover strong {
+  color: var(--accent-brand);
+}
+.personRole {
+  flex-shrink: 0;
+  height: 28px;
+  font-size: 12.5px;
+}
+.personFixed {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+/* Search pickers */
+.pickerSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--input);
+  border-radius: 9px;
+  color: var(--muted-foreground);
+}
+.pickerSearch:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);
+}
+.pickerSearch input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  font-size: 14px;
+  outline: none;
+}
+.pickerResults {
+  display: grid;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.pickerOption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--foreground);
+  text-align: left;
+}
+.pickerOption:hover:not(:disabled),
+.pickerOption:focus-visible {
+  background: var(--muted);
+}
+.pickerIcon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pickerText {
+  display: grid;
+  min-width: 0;
+}
+.pickerText strong,
+.pickerText small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pickerText strong {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.pickerText small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.pickerEmpty {
+  margin: 0;
+  padding: 12px 8px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+/* Add contact: the facts a draft will remember, and an existing match. */
+.draftFacts {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.draftFacts li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 10px;
+  border-radius: 8px;
+  background: var(--muted);
+  font-size: 13px;
+}
+.draftFacts p {
+  flex: 1;
+  margin: 0;
+}
+.takenNotice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}

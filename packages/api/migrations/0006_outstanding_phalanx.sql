@@ -1,0 +1,1 @@
+ALTER TABLE "form_submission" ADD COLUMN "conversation_auth_hash" text;

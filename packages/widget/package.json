@@ -1,0 +1,31 @@
+{
+  "name": "@anyhour/widget",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css",
+    "./launcher.css": "./src/embed/launcher.css"
+  },
+  "scripts": {
+    "dev": "bun scripts/serve.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "build": "bun build src/index.ts --target browser --external react --outdir dist && bun run build:embed",
+    "build:embed": "rm -f dist/embed.js dist/chat-*.js && bun scripts/build.ts"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "eslint": "^9.20.0",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.46.0"
+  },
+  "dependencies": {
+    "@assistant-ui/react": "^0.15.23",
+    "react-dom": "^19.2.0"
+  }
+}

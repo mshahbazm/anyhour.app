@@ -1,0 +1,373 @@
+/* How the AI talks to customers: rules for every chat, steps for a
+ * situation. */
+.page.rulesPage {
+  width: min(100%, 760px);
+}
+.rulesEmpty {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.rulesGroup {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+.rulesGroupHead h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.rulesGroupHead p {
+  margin: 2px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+/* An empty section: examples that fill the add box. */
+.rulesNone {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.ruleExample {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.ruleExample:hover {
+  border-color: color-mix(in srgb, var(--foreground) 25%, var(--border));
+}
+.rulesGroupTitle {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Add a rule */
+.addRule {
+  display: grid;
+  gap: 10px;
+}
+.addRuleForm {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+}
+.addRuleForm textarea.textField {
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  resize: none;
+}
+.addRuleForm textarea.textField:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.ruleDrafts {
+  display: grid;
+  gap: 8px;
+}
+.ruleDraft {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+.ruleDraft .stepsCard {
+  border: 0;
+  padding: 0;
+}
+.ruleDraftControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.ruleFormActions {
+  display: flex;
+  gap: 6px;
+}
+
+/* One-line rules */
+.ruleList {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.ruleList > section + section {
+  border-top: 1px solid var(--border);
+}
+.ruleGroupLabel {
+  margin: 0;
+  padding: 10px 14px 0;
+  color: var(--muted-foreground);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.ruleList ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ruleList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 8px 9px 14px;
+}
+.ruleList li > .ruleText {
+  flex: 1;
+}
+.ruleLine {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-width: 0;
+}
+.ruleText {
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.ruleTags {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+.ruleTag {
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.ruleIconButton {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted-foreground);
+}
+.ruleIconButton:hover:not(:disabled) {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.ruleList .ruleMenu {
+  margin-top: -3px;
+}
+
+/* Steps: titled by "When …", then a numbered stepper. */
+.stepsList {
+  display: grid;
+  gap: 10px;
+}
+.stepsCard {
+  display: grid;
+  gap: 12px;
+  padding: 14px 10px 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.stepsCard > header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.stepsCard h3 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.stepsCard > header .ruleTags {
+  margin-top: 1px;
+}
+.stepsCard > header .ruleMenu {
+  margin-top: -3px;
+}
+.stepsWho {
+  margin-bottom: -6px;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}
+.stepper {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.stepper li {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  padding-bottom: 12px;
+  font-size: 13.5px;
+  line-height: 20px;
+}
+.stepper li:last-child {
+  padding-bottom: 0;
+}
+/* The thin line joining one number to the next. */
+.stepper li:not(:last-child)::before {
+  position: absolute;
+  top: 22px;
+  bottom: 2px;
+  left: 9.5px;
+  width: 1px;
+  background: var(--border);
+  content: '';
+}
+.ruleStepDot {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* Editing a rule or steps */
+.ruleEditForm {
+  display: grid;
+  flex: 1;
+  gap: 10px;
+  min-width: 0;
+}
+.stepsCard.is-editing {
+  padding-right: 14px;
+}
+.ruleEditor {
+  display: grid;
+  gap: 10px;
+}
+.ruleEditor textarea.textField {
+  resize: vertical;
+}
+.ruleStepFields {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ruleStepFields li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ruleStepFields .textField {
+  flex: 1;
+  min-width: 0;
+}
+.ruleAddStep {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}
+.ruleAddStep:hover:not(:disabled) {
+  color: var(--foreground);
+}
+
+/* The link from Profile to the Rules tab. */
+.rulesLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 13.5px;
+  text-decoration: none;
+}
+.rulesLink:hover {
+  color: var(--foreground);
+}
+
+@media (max-width: 640px) {
+  .addRuleForm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* The chat card with drafted rules. */
+.ruleDraftCard {
+  display: grid;
+  gap: 10px;
+}
+.ruleDraftCardList {
+  display: grid;
+  gap: 8px;
+}
+.ruleDraftCardLine {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.ruleDraftCard.is-dismissed .ruleDraftCardList {
+  opacity: 0.55;
+}
+.ruleDraftCardFooter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ruleDraftCardDone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}

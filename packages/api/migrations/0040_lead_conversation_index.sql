@@ -1,0 +1,2 @@
+CREATE INDEX "lead_automation_run_automation_idx" ON "lead_automation_run" USING btree ("automation_id");--> statement-breakpoint
+CREATE INDEX "lead_conversation_conversation_idx" ON "lead_conversation" USING btree ("conversation_id");

@@ -1,0 +1,234 @@
+/* The closed chat on the website: launcher, first-visit greeting, and panel. */
+.wpEmbed {
+  --wp-brand: #171717;
+  --wp-on-brand: #ffffff;
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2147483000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  font:
+    14px/1.45 ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+.wpEmbed *,
+.wpEmbed *::before,
+.wpEmbed *::after {
+  box-sizing: border-box;
+}
+
+.wpEmbedLauncher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 56px;
+  min-width: 56px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--wp-brand);
+  color: var(--wp-on-brand);
+  font: inherit;
+  font-weight: 600;
+  box-shadow: 0 10px 28px -8px rgb(0 0 0 / 0.35);
+  cursor: pointer;
+  transition:
+    transform 180ms cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 180ms;
+}
+.wpEmbedLauncher:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px -8px rgb(0 0 0 / 0.4);
+}
+.wpEmbedLauncher:active {
+  transform: scale(0.96);
+}
+.wpEmbedLauncher.is-avatar:not(.is-open) {
+  box-shadow:
+    0 10px 28px -8px rgb(0 0 0 / 0.35),
+    0 0 0 3px #ffffff,
+    0 0 0 5px var(--wp-brand);
+}
+.wpEmbedLauncher .wpBotAvatar {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 999px;
+  font-weight: 600;
+  width: 56px;
+  height: 56px;
+  background: var(--wp-brand);
+  color: var(--wp-on-brand);
+  font-size: 21px;
+}
+.wpEmbedLauncher .wpBotAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* Opened before the full chat arrived: a ring spins until it does. */
+.wpEmbedLauncher.is-loading {
+  position: relative;
+  cursor: progress;
+}
+.wpEmbedLauncher.is-loading::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 2px solid transparent;
+  border-top-color: var(--wp-on-brand);
+  border-radius: inherit;
+  animation: wpSpin 700ms linear infinite;
+}
+@keyframes wpSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.wpEmbedLauncher.is-label:not(.is-open) {
+  padding: 0 20px 0 17px;
+}
+
+/* First-visit greeting and starter questions above the launcher */
+.wpTeaser {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: min(320px, calc(100vw - 40px));
+  animation: wpTeaserIn 420ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.wpTeaserBubble {
+  padding: 12px 15px;
+  border: 0;
+  border-radius: 16px 16px 5px 16px;
+  background: #ffffff;
+  color: #1c1c1c;
+  font: inherit;
+  text-align: left;
+  box-shadow:
+    0 12px 32px -12px rgb(0 0 0 / 0.28),
+    0 0 0 1px rgb(0 0 0 / 0.05);
+  cursor: pointer;
+}
+.wpTeaserPrompt {
+  padding: 8px 14px;
+  border: 1.5px solid var(--wp-brand);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1c1c1c;
+  font: inherit;
+  text-align: right;
+  box-shadow: 0 8px 20px -12px rgb(0 0 0 / 0.3);
+  cursor: pointer;
+  transition:
+    background 140ms,
+    color 140ms;
+}
+.wpTeaserPrompt:hover {
+  background: var(--wp-brand);
+  color: var(--wp-on-brand);
+}
+.wpTeaserPrompt:nth-of-type(2) {
+  animation: wpTeaserIn 420ms 80ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.wpTeaserPrompt:nth-of-type(3) {
+  animation: wpTeaserIn 420ms 160ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.wpTeaserPrompt:nth-of-type(4) {
+  animation: wpTeaserIn 420ms 240ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.wpTeaserClose {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #6f6f6f;
+  font-size: 16px;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 140ms;
+}
+.wpTeaser:hover .wpTeaserClose,
+.wpTeaserClose:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .wpTeaserClose {
+    opacity: 1;
+  }
+}
+
+/* The open chat */
+.wpEmbedPanel {
+  z-index: 2147483001;
+  width: min(390px, calc(100vw - 24px));
+  height: min(620px, calc(100dvh - 110px));
+  overflow: hidden;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow:
+    0 24px 60px -20px rgb(0 0 0 / 0.35),
+    0 0 0 1px rgb(0 0 0 / 0.06);
+  transform-origin: var(--radix-popover-content-transform-origin);
+}
+.wpEmbedPanel[data-state="open"] {
+  animation: wpPanelIn 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.wpEmbedPanel[data-state="closed"] {
+  animation: wpPanelOut 160ms ease-in forwards;
+}
+
+@keyframes wpTeaserIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+@keyframes wpPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+}
+@keyframes wpPanelOut {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+@media (max-width: 480px) {
+  .wpEmbed {
+    right: 14px;
+    bottom: 14px;
+  }
+  .wpEmbedPanel {
+    width: calc(100vw - 16px);
+    height: calc(100dvh - 96px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wpTeaser,
+  .wpTeaserPrompt,
+  .wpEmbedPanel[data-state] {
+    animation: none;
+  }
+}

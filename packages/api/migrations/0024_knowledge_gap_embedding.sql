@@ -1,0 +1,1 @@
+ALTER TABLE "knowledge_gap" ADD COLUMN "embedding" vector(384);

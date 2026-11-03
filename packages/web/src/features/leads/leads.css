@@ -1,0 +1,284 @@
+.leadStatus {
+  flex-shrink: 0;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.statusTrigger {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  height: 34px;
+  padding: 0 8px 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--muted-foreground);
+}
+.statusDot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+.valueForm {
+  display: flex;
+  gap: 8px;
+  max-width: 260px;
+}
+.leadSheet {
+  width: min(460px, 100vw) !important;
+  max-width: none !important;
+  overflow-y: auto;
+}
+.leadDetail {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  padding: 22px 20px 32px;
+}
+.contactCard {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 13.5px;
+}
+.contactCard a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--foreground);
+  text-decoration: none;
+}
+.contactCard a svg {
+  color: var(--muted-foreground);
+}
+.contactCard a:hover {
+  color: var(--accent-brand);
+}
+.mutedLine {
+  color: var(--muted-foreground);
+}
+.leadSummary {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.noteItem {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 13px;
+}
+.noteItem p {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.noteItem time {
+  color: var(--subtle-foreground);
+  font-size: 11.5px;
+}
+.noteForm {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+.noteForm textarea {
+  width: 100%;
+  height: auto;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.questionTag {
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 11px;
+  font-weight: 500;
+}
+.questionNote {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.listAvatar.is-small {
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+}
+
+/* The status chip row above the list */
+.statusChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.statusChips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  white-space: nowrap;
+  transition:
+    background 120ms,
+    border-color 120ms,
+    color 120ms;
+}
+.statusChips button:hover {
+  color: var(--foreground);
+}
+.statusChips button[aria-pressed='true'] {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+
+/* The lead page */
+.qualificationLine {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}
+.timeline {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.timelineItem {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  padding-bottom: 12px;
+}
+.timelineItem:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  top: 24px;
+  bottom: 2px;
+  left: 10.5px;
+  width: 1px;
+  background: var(--border);
+}
+.timelineIcon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.timelineBody {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 2px;
+}
+.timelineTop {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.timelineTop span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.timelineTop time {
+  flex-shrink: 0;
+  color: var(--subtle-foreground);
+  font-size: 11.5px;
+}
+.timelineMore {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.timelineMore:hover {
+  color: var(--foreground);
+}
+.timelineMore[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.timelineDetail {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.timelineDetail dt {
+  color: var(--muted-foreground);
+  font-size: 11.5px;
+}
+.timelineDetail dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.timelineLoading {
+  display: grid;
+  gap: 8px;
+}
+.timelineEmpty {
+  margin: 0;
+  font-size: 13px;
+}
+
+/* Phones: one swipeable chip row, and taps of at least 44 px on the
+   actions owners use most (add a note, change status). */
+@media (max-width: 640px) {
+  .statusChips {
+    flex-wrap: nowrap;
+    margin-inline: -16px;
+    padding: 2px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .statusChips button {
+    height: 40px;
+    padding: 0 14px;
+  }
+  .noteForm [data-slot='button'],
+  .statusTrigger {
+    min-height: 44px;
+  }
+}

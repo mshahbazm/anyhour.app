@@ -1,0 +1,1 @@
+ALTER TABLE "assistant" ADD COLUMN "behaviour" jsonb DEFAULT '{}'::jsonb NOT NULL;

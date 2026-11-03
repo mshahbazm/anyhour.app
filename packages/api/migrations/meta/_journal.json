@@ -1,0 +1,552 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790616560434,
+      "tag": "0000_thick_butterfly",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790677798905,
+      "tag": "0001_past_vampiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790702429237,
+      "tag": "0002_fantastic_justin_hammer",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790703443201,
+      "tag": "0003_giant_devos",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790704214228,
+      "tag": "0004_overjoyed_proteus",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790743949919,
+      "tag": "0005_luxuriant_mandrill",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790744875558,
+      "tag": "0006_outstanding_phalanx",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790750123487,
+      "tag": "0007_huge_hairball",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790758404889,
+      "tag": "0008_pretty_doomsday",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790766537818,
+      "tag": "0009_careful_blob",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790767015334,
+      "tag": "0010_spooky_mentallo",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790772263033,
+      "tag": "0011_freezing_doctor_octopus",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790836321774,
+      "tag": "0012_broken_miracleman",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790843417157,
+      "tag": "0013_tough_reptil",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790874497795,
+      "tag": "0014_amused_warpath",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790884746379,
+      "tag": "0015_busy_sleeper",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790927654820,
+      "tag": "0016_red_living_mummy",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790933843127,
+      "tag": "0017_flawless_titania",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790986737042,
+      "tag": "0018_bot_profile_and_lead_reason",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791011855712,
+      "tag": "0019_bot_behaviour",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791023605741,
+      "tag": "0020_widget_appearance",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791026835878,
+      "tag": "0021_drop_workspace_website",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791028441743,
+      "tag": "0022_knowledge_overview",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791042123789,
+      "tag": "0023_knowledge_gaps",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791042583306,
+      "tag": "0024_knowledge_gap_embedding",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791044174749,
+      "tag": "0025_visitor_gaps_only",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791046157575,
+      "tag": "0026_widget_installs",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1791091270414,
+      "tag": "0027_site_insights",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1791113246659,
+      "tag": "0028_knowledge_corrections",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1791113987074,
+      "tag": "0029_ui_block_pending_note",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1791262002508,
+      "tag": "0030_notes_as_own_kind",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791262172420,
+      "tag": "0031_service_heartbeat",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791263279663,
+      "tag": "0032_hybrid_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791265363017,
+      "tag": "0033_drop_assistant_instructions",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1791271035499,
+      "tag": "0034_pipelines",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1791271048586,
+      "tag": "0035_backfill_lead_stages",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791271055080,
+      "tag": "0036_lead_stage_required",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791271459276,
+      "tag": "0037_pipeline_follows_workspace",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791568068836,
+      "tag": "0038_sales_automations",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791569455285,
+      "tag": "0039_automation_engine",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791572510184,
+      "tag": "0040_lead_conversation_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1791580142114,
+      "tag": "0041_whatsapp_owner_alerts",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1791891495034,
+      "tag": "0042_front_desk_setup",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1793284800047,
+      "tag": "0043_contacts",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1793284800624,
+      "tag": "0044_backfill_contact_identities",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793296432187,
+      "tag": "0045_support",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1793299988567,
+      "tag": "0046_offers",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1793301005794,
+      "tag": "0047_knowledge_layers",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1793301036634,
+      "tag": "0048_knowledge_layers_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1793301037058,
+      "tag": "0049_knowledge_layers_required",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1793305326902,
+      "tag": "0050_employees",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1793307014378,
+      "tag": "0051_social_media",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1793308685120,
+      "tag": "0052_team_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1793310760688,
+      "tag": "0053_customer_whatsapp",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1793312025495,
+      "tag": "0054_chat_blocks",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1793313634661,
+      "tag": "0055_voice_receptionist",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1793340981662,
+      "tag": "0056_drop_whatsapp_help",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1793343800795,
+      "tag": "0057_website_scope_plan",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1793376585374,
+      "tag": "0058_drop_assistant_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1793432901066,
+      "tag": "0059_team_lead",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1793441432405,
+      "tag": "0060_website_channel",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1793450075836,
+      "tag": "0061_member_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793465879364,
+      "tag": "0062_peaceful_namora",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793466510284,
+      "tag": "0063_whole_madame_hydra",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1793466521673,
+      "tag": "0064_next_tattoo",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1793468134456,
+      "tag": "0065_unknown_silver_surfer",
+      "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1793468140835,
+      "tag": "0066_aromatic_anthem",
+      "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1793470248624,
+      "tag": "0067_solid_sphinx",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1793472833429,
+      "tag": "0068_lame_dragon_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1793473007460,
+      "tag": "0069_unique_martin_li",
+      "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1793473425923,
+      "tag": "0070_heavy_valkyrie",
+      "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1793473448533,
+      "tag": "0071_dark_prodigy",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793473455003,
+      "tag": "0072_lazy_nuke",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1793474961693,
+      "tag": "0073_chief_mantis",
+      "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1793475503514,
+      "tag": "0074_tiresome_stranger",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1793495609705,
+      "tag": "0075_adorable_the_hand",
+      "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1793496155286,
+      "tag": "0076_curly_lady_deathstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1793701298530,
+      "tag": "0077_businessHours",
+      "breakpoints": true
+    }
+  ]
+}

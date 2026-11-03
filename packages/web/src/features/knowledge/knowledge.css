@@ -1,0 +1,556 @@
+/* Your business. */
+.page.knowledgePage {
+  gap: 28px;
+  width: min(100%, 880px);
+}
+
+/* The business card in a tinted panel, then plain lists where names are
+   dark and details grey, each with a small icon to scan by. */
+.understandingLead {
+  display: grid;
+  gap: 12px;
+  padding: 20px 22px;
+  border: 1px solid color-mix(in srgb, var(--accent-brand) 14%, var(--border));
+  border-radius: 14px;
+  background: var(--accent-soft);
+}
+.understandingLeadHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.understandingLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-brand);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.understandingLead > p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--foreground);
+  font-size: 15.5px;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+.understandingBlock {
+  display: grid;
+  gap: 10px;
+}
+.understandingBlockHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.understandingHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.understandingHint {
+  max-width: 600px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.miniAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.miniAction:hover:not(:disabled) {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+/* Icon + name + detail, shared by offerings, facts and the correct bar */
+.itemIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.itemIcon.is-owner {
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+}
+.itemText {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+.itemText strong {
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.itemText small {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.noteList {
+  display: grid;
+  margin: 0 -10px;
+  padding: 0;
+  list-style: none;
+}
+.noteList button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  text-align: left;
+  transition: background 120ms;
+}
+.noteList button:hover {
+  background: var(--muted);
+}
+.noteList .itemText small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.noteDiffers {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 11px;
+  font-weight: 500;
+}
+.noteWhen {
+  flex-shrink: 0;
+  color: var(--subtle-foreground);
+  font-size: 12px;
+}
+.noteList button > svg {
+  flex-shrink: 0;
+  color: var(--subtle-foreground);
+}
+.businessLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.businessLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 13px;
+  text-decoration: none;
+}
+.businessLink:hover {
+  background: var(--muted);
+}
+.businessLink > svg {
+  color: var(--muted-foreground);
+}
+
+/* Adding a link or files */
+.addSource {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px dashed var(--input);
+  border-radius: 14px;
+  background: var(--surface);
+  transition:
+    border-color 140ms,
+    background 140ms;
+}
+.addSource.is-dragging {
+  border-color: var(--accent-brand);
+  background: var(--accent-soft);
+}
+.addSourceLink {
+  display: flex;
+  gap: 8px;
+}
+.addSourceField {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--input);
+  border-radius: 9px;
+  background: var(--background);
+  color: var(--muted-foreground);
+}
+.addSourceField:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);
+}
+.addSourceField input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 14px;
+  outline: none;
+}
+.addSourceLink .primaryButton {
+  height: 38px;
+  padding: 0 18px;
+}
+.addSourceScope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  animation: rise 160ms ease-out both;
+}
+.addSourceScope .segmented {
+  grid-template-columns: repeat(2, auto);
+}
+.addSourceScope .segmented button {
+  padding: 0 10px;
+}
+.addSourceFiles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}
+.addSource.is-dragging .addSourceFiles span {
+  color: var(--accent-brand);
+  font-weight: 500;
+}
+
+/* Sections */
+.knowledgeSection {
+  display: grid;
+  gap: 14px;
+}
+.knowledgeSectionHead {
+  display: grid;
+  gap: 3px;
+}
+.knowledgeSectionHead.is-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+}
+.knowledgeSectionHead h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.knowledgeSectionHead p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.knowledgeCount {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.knowledgeSectionHead .searchField {
+  width: min(240px, 50%);
+  background: var(--background);
+}
+
+/* Questions the bot couldn't answer */
+.gapsDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--warning);
+}
+.gapList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+.gapList li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.gapText {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+.gapText strong {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.gapText small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.gapList li.is-pending {
+  opacity: 0.65;
+}
+.teachButton {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+  transition: background 120ms;
+}
+.teachButton:hover:not(:disabled) {
+  background: var(--muted);
+}
+.teachButton:disabled {
+  opacity: 0.5;
+}
+.gapDismiss {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted-foreground);
+}
+.gapDismiss:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+/* Sources as a quiet list with dividers */
+.sourceProblem {
+  color: var(--warning);
+}
+.knowledgePage .sourceList {
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+.knowledgePage .sourceList > li {
+  border-bottom: 1px solid var(--border);
+}
+.knowledgePage .sourceChildren {
+  margin: 0 0 8px 30px;
+}
+.knowledgePage .sourceRowMain {
+  padding: 10px 8px;
+  border-radius: 8px;
+}
+.knowledgePage .sourceRowMain:hover {
+  background: var(--muted);
+  box-shadow: none;
+}
+.knowledgePage .sourceIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .page.knowledgePage {
+    gap: 24px;
+  }
+  .understandingLead {
+    padding: 16px;
+  }
+  .understandingLead > p {
+    font-size: 15px;
+  }
+  .noteWhen {
+    display: none;
+  }
+  .knowledgeSectionHead .searchField {
+    width: 50%;
+  }
+}
+
+.countPill {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 19px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Website changes that disagree with the owner's facts */
+.decisionList li {
+  align-items: flex-start;
+}
+.decisionCompare {
+  display: grid;
+  flex: 1;
+  gap: 10px;
+  min-width: 0;
+}
+.decisionCompare > div {
+  display: grid;
+  gap: 2px;
+}
+.decisionCompare small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.decisionCompare strong {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.decisionActions {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+@media (max-width: 560px) {
+  .decisionList li {
+    flex-direction: column;
+  }
+  .decisionActions {
+    flex-direction: row;
+  }
+}
+
+/* Opening hours: one quiet line, read from what the AI knows */
+.openingHours {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: -8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.openingHours > svg {
+  flex: none;
+  align-self: center;
+}
+.openingHoursZone {
+  color: var(--muted-foreground);
+}
+.openingHours > span:first-of-type {
+  color: var(--foreground);
+}
+.openingHoursTell {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-brand);
+  font: inherit;
+  cursor: pointer;
+}
+.openingHoursTell:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Tell the AI a fact: one box, saved as a note */
+.tellBox {
+  display: grid;
+  gap: 8px;
+}
+.tellBox textarea {
+  min-height: 64px;
+  background: var(--background);
+}
+.tellBoxActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tellBoxNotice {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.tellBoxNotice a {
+  color: var(--accent-brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tellBoxTitle {
+  font-size: 14px;
+}
+.tellBoxPages {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.tellBoxPages dt {
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}
+.tellBoxPages dd {
+  margin: 0;
+  font-size: 13.5px;
+}

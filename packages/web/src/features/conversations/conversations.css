@@ -1,0 +1,255 @@
+.transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 16px 24px;
+  background: var(--surface);
+}
+.transcriptRow {
+  display: grid;
+  gap: 4px;
+  max-width: 82%;
+}
+.transcriptRow.fromVisitor {
+  justify-self: start;
+  align-self: flex-start;
+}
+.transcriptRow.fromBot {
+  align-self: flex-end;
+  justify-items: end;
+}
+.transcriptLabel {
+  color: var(--subtle-foreground);
+  font-size: 11.5px;
+}
+.visitorBubble,
+.botBubble {
+  padding: 9px 13px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.visitorBubble {
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+  background: var(--card);
+  white-space: pre-wrap;
+}
+.botBubble {
+  border-bottom-right-radius: 4px;
+  background: var(--accent-soft);
+}
+.botBubble .messageContent {
+  font-size: 13.5px;
+}
+
+/* The inbox */
+.inboxRow {
+  align-items: flex-start;
+}
+.inboxTags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+.inboxChannel {
+  display: inline-grid;
+  place-items: center;
+  color: var(--subtle-foreground);
+}
+.inboxTag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.inboxTag.is-waiting {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.detailPane.inboxDetail {
+  min-height: 420px;
+  max-height: calc(100svh - 270px);
+}
+.transcriptRow.fromVisitor .transcriptLabel {
+  padding-left: 2px;
+}
+.transcriptBlock {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  font-size: 12.5px;
+}
+.transcriptBlock.isCard {
+  display: grid;
+  justify-content: start;
+  justify-items: start;
+  gap: 3px;
+  min-width: 180px;
+  padding: 9px 12px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--muted-foreground);
+}
+.transcriptBlock.isCard strong {
+  color: var(--foreground);
+  font-weight: 500;
+}
+.transcriptBlock ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.blockChip {
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--muted-foreground);
+}
+.transcriptRow.fromStaff .botBubble {
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.handoffCard {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border));
+  border-radius: 12px;
+  background: var(--warning-soft);
+  font-size: 13px;
+}
+.handoffTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--warning);
+}
+.handoffTop {
+  flex-wrap: wrap;
+}
+.handoffTop strong {
+  font-weight: 500;
+}
+.handoffTop span {
+  color: var(--muted-foreground);
+}
+.handoffCard dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+}
+.handoffCard dt {
+  color: var(--muted-foreground);
+}
+.handoffCard dd {
+  margin: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.inboxError {
+  margin: 8px 16px 0;
+}
+.inboxComposer {
+  display: grid;
+  gap: 8px;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--card);
+}
+.inboxComposer textarea.textField {
+  width: 100%;
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.inboxActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.contactPanelName {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.contactPanelFacts {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+@media (max-width: 760px) {
+  /* The conversation gets the whole screen on a phone. */
+  .inboxPage.has-detail > .pageHeader {
+    display: none;
+  }
+  .detailPane.inboxDetail {
+    min-height: calc(100svh - 150px);
+    max-height: calc(100svh - 120px);
+  }
+  .hideNarrow {
+    display: none;
+  }
+  .inboxActions > [data-slot='button'] {
+    flex: 1 1 auto;
+    min-height: 40px;
+  }
+}
+.noteOfferCard {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 480px);
+  margin-left: auto;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  font-size: 13px;
+}
+.noteOfferCard > strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+.noteOfferCard textarea.textField {
+  width: 100%;
+  height: auto;
+  padding: 8px 10px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.noteOfferCard dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.noteOfferCard dt {
+  color: var(--muted-foreground);
+}
+.noteOfferCard dd {
+  margin: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "assistant" ADD COLUMN "appearance" jsonb DEFAULT '{"brandColor":null,"launcher":"avatar","starterPrompts":[]}'::jsonb NOT NULL;

@@ -1,0 +1,370 @@
+/* Steps joined by a line; each one ticks off when it's done. */
+.installSteps {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.installStep {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding-bottom: 26px;
+}
+.installStep:last-child {
+  padding-bottom: 0;
+}
+.installStep:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  top: 30px;
+  bottom: 4px;
+  left: 13px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--border);
+}
+.installStep.is-done:not(:last-child)::before {
+  background: color-mix(in srgb, var(--success) 45%, var(--border));
+}
+.stepNumber {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.installStep.is-done .stepNumber {
+  border-color: var(--success);
+  background: var(--success);
+  color: #fff;
+}
+.stepBody {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+  min-width: 0;
+}
+.stepBody h3 {
+  margin: 4px 0 0;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.stepBody p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.stepBody p code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--muted);
+  font-size: 12px;
+}
+.originList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.originList li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 13px;
+}
+.originList li svg {
+  color: var(--muted-foreground);
+}
+.originList button {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted-foreground);
+}
+.originList button:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.originForm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.originForm .textField {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+}
+.originSuggestion {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px dashed color-mix(in srgb, var(--foreground) 22%, var(--border));
+  border-radius: 12px;
+  background: var(--surface, var(--card));
+  color: var(--foreground);
+  text-align: left;
+  transition:
+    border-color 120ms,
+    background 120ms;
+}
+.originSuggestion:hover:not(:disabled) {
+  border-style: solid;
+  border-color: var(--foreground);
+}
+.originSuggestion > svg {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+.originSuggestion > span:first-of-type {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+.originSuggestion strong {
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.originSuggestion small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.originSuggestionAdd {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.installSteps,
+.installStep {
+  min-width: 0;
+}
+.stepBody > * {
+  min-width: 0;
+}
+.snippet {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #18181b;
+}
+.snippetBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 6px 6px 12px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  color: #a1a1aa;
+  font-size: 12px;
+}
+.snippetBar > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.snippetSend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+}
+.snippetSend:hover {
+  color: var(--foreground);
+  text-decoration-color: currentColor;
+}
+.snippet textarea {
+  display: block;
+  width: 100%;
+  padding: 12px 14px 14px;
+  border: 0;
+  background: none;
+  color: #e4e4e7;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12.5px;
+  line-height: 1.6;
+  /* Wrap long URLs so the whole snippet is visible in narrow panels. */
+  white-space: pre-wrap;
+  word-break: break-all;
+  field-sizing: content;
+  resize: none;
+  outline: none;
+}
+.snippet textarea::selection {
+  background: rgb(96 165 250 / 0.35);
+}
+
+/* Live or offline, and whether the chat has been seen on the website. */
+.installStatus {
+  display: grid;
+  gap: 8px;
+}
+.statusCard {
+  --status: var(--subtle-foreground);
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+}
+.statusCard.is-live {
+  --status: var(--success);
+  border-color: color-mix(in srgb, var(--success) 28%, var(--border));
+  background: linear-gradient(
+    180deg,
+    var(--success-soft),
+    color-mix(in srgb, var(--success-soft) 30%, var(--card))
+  );
+}
+.statusCard.is-waiting {
+  --status: var(--success);
+}
+.statusCard.is-warning {
+  border-color: color-mix(in srgb, var(--warning) 30%, var(--border));
+  background: var(--warning-soft);
+}
+.statusTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 28px;
+  margin-bottom: 6px;
+}
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.statusPill.is-live {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+}
+.statusPill.is-ready {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+}
+.statusPill.is-live .statusDot {
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 50%, transparent);
+  animation: statusPulse 2s ease-out infinite;
+}
+@keyframes statusPulse {
+  to {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .statusPill.is-live .statusDot {
+    animation: none;
+  }
+}
+.statusCard > strong {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.statusCard > p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.statusNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border));
+  border-radius: 12px;
+  background: var(--warning-soft);
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.statusNote > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--warning);
+}
+.statusNote > span {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+}
+.statusNote strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.installDot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--subtle-foreground);
+}
+.installDot.is-working {
+  background: var(--success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 20%, transparent);
+}
+.installNote {
+  margin: 10px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.installNote code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}

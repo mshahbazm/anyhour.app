@@ -1,0 +1,1 @@
+ALTER TABLE "knowledge_chunk" ADD COLUMN "kind" text DEFAULT 'content' NOT NULL;

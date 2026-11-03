@@ -1,0 +1,42 @@
+{
+  "name": "Xvelopers (local test bot Tom)",
+  "assistantId": "2f5357fa-2cc2-4e84-a2f8-5595821f173b",
+  "cases": [
+    { "question": "How much does a website cost?", "expect": "$799" },
+    {
+      "question": "What's the price of the blog add-on?",
+      "expect": "blog add-on"
+    },
+    {
+      "question": "Can you build an online shop for me?",
+      "expect": "shop add-on"
+    },
+    {
+      "question": "How long until my site is live?",
+      "expect": "7 business days"
+    },
+    { "question": "Can I get a refund if I'm not happy?", "expect": "refund" },
+    { "question": "How much is hosting per month?", "expect": "$59" },
+    { "question": "Who is Emma?", "expect": "Emma" },
+    { "question": "What does Mia do?", "expect": "Mia" },
+    {
+      "question": "Do you have an AI that answers phone calls?",
+      "expect": "Alex"
+    },
+    {
+      "question": "Do I own the website, can I host it anywhere?",
+      "expect": "host anywhere"
+    },
+    { "question": "How many pages are included?", "expect": "ten pages" },
+    {
+      "question": "How many products can the shop have?",
+      "expect": "100 product"
+    },
+    { "question": "Do you write the text for my site?", "expect": "written" },
+    {
+      "question": "Do you work with clients outside the UK?",
+      "expect": "worldwide"
+    },
+    { "question": "Are you available at night?", "expect": "24/7" }
+  ]
+}

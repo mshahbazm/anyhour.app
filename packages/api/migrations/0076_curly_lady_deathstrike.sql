@@ -1,0 +1,1 @@
+ALTER TABLE "assistant" ADD COLUMN "tracking_options" jsonb DEFAULT '{"visits":true,"location":true,"device":true,"chat":true}'::jsonb NOT NULL;

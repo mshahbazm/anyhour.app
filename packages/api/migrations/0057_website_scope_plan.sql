@@ -1,0 +1,1 @@
+ALTER TABLE "knowledge_source" ADD COLUMN "scope_plan" jsonb;

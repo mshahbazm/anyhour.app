@@ -1,0 +1,1 @@
+ALTER TABLE "workspace_ui_block" ADD COLUMN "pending_note" jsonb;

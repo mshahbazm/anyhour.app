@@ -1,0 +1,1 @@
+ALTER TABLE "knowledge_source" ADD COLUMN "cleanup_stats" jsonb;

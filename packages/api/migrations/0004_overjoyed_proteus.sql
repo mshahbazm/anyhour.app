@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "index_run_one_active_per_source" ON "index_run" USING btree ("target_source_id") WHERE "index_run"."status" in ('queued', 'running');

@@ -1,0 +1,530 @@
+/* Customize: settings under a live preview of the closed chat */
+.lookView {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.lookSheet {
+  width: 420px;
+  max-width: 100%;
+  gap: 0;
+  padding: 0;
+}
+.lookHead {
+  padding: 18px 52px 14px 18px;
+}
+.lookHead .is-error {
+  color: var(--destructive);
+}
+.lookPreview {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 96px;
+  flex-shrink: 0;
+  margin: 0 18px;
+  padding: 0 18px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 1px 1px, rgb(0 0 0 / 0.08) 1px, transparent 0) 0
+      0 / 16px 16px,
+    var(--muted);
+}
+.lookPreview .wpEmbedLauncher {
+  pointer-events: none;
+}
+/* Look */
+.lookBody {
+  display: grid;
+  align-content: start;
+  gap: 22px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 18px 24px;
+}
+.lookField h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.lookField p {
+  margin: -4px 0 10px;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.swatch {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+  transition: transform 120ms;
+}
+.swatch:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+.swatch[aria-pressed='true'] {
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--foreground);
+}
+.hexField {
+  width: 92px;
+  height: 30px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12.5px;
+}
+.labelField {
+  width: 100%;
+  margin-top: 8px;
+}
+.launcherChoices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.launcherChoices button {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 12px 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}
+.launcherChoices button[aria-checked='true'] {
+  border-color: var(--foreground);
+  color: var(--foreground);
+}
+.launcherSample {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 30px;
+  max-width: 100%;
+  height: 30px;
+  padding: 0 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--wp-brand);
+  color: var(--wp-on-brand);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.launcherSample span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.launcherSample:has(.botAvatar) {
+  padding: 0;
+}
+
+.iconChoices {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+.iconChoices button {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--muted-foreground);
+}
+.iconChoices button:hover:not(:disabled) {
+  color: var(--foreground);
+}
+.iconChoices button[aria-checked='true'] {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+
+/* Preview: a stage where the chat floats as visitors see it on a website. */
+.tryStageBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tryStageLabel {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.stageCustomize {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+}
+.stageCustomize:hover {
+  opacity: 0.88;
+}
+/* The preview is a stage: the chat floats as visitors see it on a website. */
+.tryStage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding: 12px 16px 18px;
+  background:
+    radial-gradient(circle at 1px 1px, rgb(0 0 0 / 0.08) 1px, transparent 0) 0
+      0 / 16px 16px,
+    var(--muted);
+}
+.stageDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgb(34 197 94 / 0.18);
+}
+
+/* What visitors see first: edited on a small mock chat */
+.lookSection {
+  display: grid;
+  gap: 12px;
+  margin: 4px -18px 0;
+  padding: 20px 18px 0;
+  border-top: 1px solid var(--border);
+}
+.lookSectionHead h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.lookSectionHead p {
+  margin: 3px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.firstStage {
+  display: grid;
+  gap: 10px;
+  padding: 16px 14px 12px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 1px 1px, rgb(0 0 0 / 0.06) 1px, transparent 0) 0
+      0 / 14px 14px,
+    var(--muted);
+}
+.firstGreeting {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.greetingBubble {
+  position: relative;
+  display: block;
+  flex: 1;
+  max-width: 88%;
+  border-radius: 16px 16px 16px 5px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+  cursor: text;
+  transition: box-shadow 140ms;
+}
+.greetingBubble:hover,
+.greetingBubble:focus-within {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.06),
+    0 0 0 2px var(--wp-brand);
+}
+.greetingBubble textarea {
+  display: block;
+  width: 100%;
+  padding: 10px 28px 10px 13px;
+  border: 0;
+  background: none;
+  color: #1c1c1c;
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  field-sizing: content;
+}
+.greetingBubble textarea::placeholder {
+  color: #1c1c1c;
+  opacity: 1;
+}
+.greetingBubble .editHint {
+  position: absolute;
+  top: 11px;
+  right: 10px;
+  color: #a1a1aa;
+}
+.firstQuestions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.firstQuestions li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 92%;
+  padding: 6px 6px 6px 13px;
+  border: 1.5px solid var(--wp-brand);
+  border-radius: 999px;
+  background: #fff;
+  color: #1c1c1c;
+  font-size: 13px;
+}
+.firstQuestions li > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.firstQuestions li > button {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: #a1a1aa;
+}
+.firstQuestions li > button:hover:not(:disabled) {
+  background: #f4f4f5;
+  color: #1c1c1c;
+}
+.firstQuestions li.is-add {
+  padding: 0;
+  border: 1.5px dashed #a1a1aa;
+  background: transparent;
+}
+.firstQuestions li.is-add button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: auto;
+  height: auto;
+  padding: 6px 13px;
+  color: #52525b;
+  font-size: 13px;
+}
+.firstQuestions li.is-add button:hover:not(:disabled) {
+  background: #fff;
+}
+.firstQuestions li.is-adding {
+  width: 92%;
+  padding: 0;
+}
+.firstQuestions li.is-adding form {
+  flex: 1;
+}
+.firstQuestions li.is-adding input {
+  width: 100%;
+  padding: 7px 13px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+.firstCount {
+  justify-self: end;
+  color: var(--muted-foreground);
+  font-size: 11.5px;
+}
+
+/* The bot's own suggestions, set apart from what's already chosen */
+.botSuggests {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(var(--accent-soft), var(--card) 75%);
+}
+.botSuggestsHead {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--accent-brand);
+}
+.botSuggestsHead strong {
+  flex: 1;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.botSuggestsHead .iconButton {
+  width: 28px;
+  height: 28px;
+}
+.botSuggests p {
+  margin: -4px 0 2px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.botSuggestsList {
+  display: grid;
+  gap: 6px;
+}
+.botSuggestsList button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 13px;
+  text-align: left;
+  transition:
+    border-color 120ms,
+    background 120ms;
+}
+.botSuggestsList button svg {
+  flex-shrink: 0;
+  color: var(--accent-brand);
+}
+.botSuggestsList button:hover:not(:disabled) {
+  border-color: var(--accent-brand);
+  background: var(--accent-soft);
+}
+
+/* The website, with the chat closed then open at its real size */
+.stageSite {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 12px;
+  min-height: 0;
+  font:
+    14px/1.45 ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+.stageClosed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.stageLauncher {
+  flex-shrink: 0;
+}
+/* Same size as on a website: a floating window, never full height. */
+.stageWindow {
+  position: absolute;
+  right: 0;
+  bottom: 70px;
+  display: flex;
+  width: min(370px, 100%);
+  height: min(560px, calc(100% - 70px));
+  overflow: hidden;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow:
+    0 24px 60px -20px rgb(0 0 0 / 0.35),
+    0 0 0 1px rgb(0 0 0 / 0.06);
+  animation: stageOpen 260ms cubic-bezier(0.32, 0.72, 0, 1);
+  transform-origin: bottom right;
+}
+.stageWindow[hidden] {
+  display: none;
+}
+.stageWindow .wpBot {
+  min-height: 0;
+}
+@keyframes stageOpen {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stageArrow,
+  .stageWindow {
+    animation: none;
+  }
+}
+
+/* An annotation on the page, above the closed chat and pointing at it */
+.stageNote {
+  display: flex;
+  margin-right: 30px;
+  align-items: flex-end;
+  gap: 4px;
+  pointer-events: none;
+}
+.stageNote p {
+  display: grid;
+  gap: 1px;
+  margin: 0 0 14px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: right;
+}
+.stageNote strong {
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.stageArrow {
+  width: 40px;
+  height: 28px;
+  margin-bottom: 4px;
+  fill: none;
+  stroke: var(--muted-foreground);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: stageArrow 1.6s ease-in-out infinite;
+}
+@keyframes stageArrow {
+  50% {
+    transform: translate(3px, 2px);
+  }
+}
+.stageClosed {
+  position: relative;
+  z-index: 1;
+}

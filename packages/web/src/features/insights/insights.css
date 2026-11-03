@@ -1,0 +1,439 @@
+/* Insights: the journey from visit to lead, a trend, and breakdowns. It
+ * lays out by its own width, so it reads the same in the narrow panel. */
+.insightsPage {
+  container-type: inline-size;
+}
+.insightsPage .muted {
+  color: var(--muted-foreground);
+}
+.insightsLoading {
+  display: grid;
+  gap: 16px;
+}
+
+.rangeSwitch {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--muted);
+}
+.rangeSwitch button {
+  padding: 5px 11px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rangeSwitch button[aria-selected='true'] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: var(--shadow-sm);
+}
+
+.insightsCard {
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Heading, text, then the button, stacked at every width. */
+.insightsWaiting {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  padding: 18px 22px;
+  border: 1px dashed color-mix(in srgb, var(--accent-brand) 40%, var(--border));
+  border-radius: 16px;
+  background: var(--accent-soft);
+}
+.insightsWaiting h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.insightsWaiting button {
+  margin-top: 10px;
+}
+.insightsWaiting p {
+  max-width: 560px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* The journey: four numbers on one band that narrows toward leads. */
+.journey {
+  padding: 22px 22px 18px;
+}
+.journeySummary {
+  margin: 0 0 18px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.journeySteps {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-height: 150px;
+}
+.journeyBand {
+  position: absolute;
+  inset: 8px 12.5% 8px;
+  width: 75%;
+  height: calc(100% - 16px);
+  overflow: visible;
+}
+.journeyBand polygon {
+  fill: color-mix(in srgb, var(--accent-brand) 9%, transparent);
+  stroke: color-mix(in srgb, var(--accent-brand) 22%, transparent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.journeyStep {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+}
+.journeyStep strong {
+  font-size: 30px;
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.journeyStep > span {
+  font-size: 13px;
+  font-weight: 500;
+}
+.journeyStep small {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+  font-size: 11.5px;
+}
+.journeyStep small.is-up {
+  color: var(--success);
+}
+.journeyStep small.is-down {
+  color: var(--muted-foreground);
+}
+/* The share of the step before, on the seam between two steps. */
+.journeyRate {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transform: translate(-50%, -50%);
+}
+
+/* Trend chart */
+.trendChart {
+  margin: 0;
+}
+.trendLegend {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}
+.trendLegend span::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+.trendLegend .is-visitors::before {
+  background: var(--accent-brand);
+}
+.trendLegend .is-chats::before {
+  background: color-mix(in srgb, var(--foreground) 22%, transparent);
+}
+.trendPlot {
+  position: relative;
+  height: 170px;
+}
+.trendPlot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.trendGrid {
+  stroke: var(--border);
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+}
+.trendLine {
+  fill: none;
+  stroke: var(--accent-brand);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.trendBar {
+  fill: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+.trendColumns {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+.trendColumn {
+  position: relative;
+  flex: 1;
+}
+.trendColumn:hover {
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in srgb, var(--accent-brand) 7%, transparent)
+  );
+}
+.trendTip {
+  position: absolute;
+  bottom: calc(100% - 8px);
+  left: 50%;
+  z-index: 2;
+  display: none;
+  min-width: 132px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 12px;
+  line-height: 1.45;
+  pointer-events: none;
+  transform: translateX(-50%);
+  box-shadow: var(--shadow-md, 0 8px 24px -8px rgb(0 0 0 / 0.3));
+}
+.trendTip span,
+.trendTip strong {
+  display: block;
+  white-space: nowrap;
+}
+.trendColumn:hover .trendTip {
+  display: block;
+}
+.trendColumn:first-child .trendTip {
+  left: 0;
+  transform: none;
+}
+.trendColumn:last-child .trendTip {
+  right: 0;
+  left: auto;
+  transform: none;
+}
+.trendAxis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: var(--subtle-foreground);
+  font-size: 11.5px;
+}
+
+/* Breakdowns */
+.breakdownGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.breakdown h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 12px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.breakdown ol {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.breakdown li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 13.5px;
+}
+.breakdownBar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-brand) 9%, transparent);
+}
+.breakdownLabel {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.breakdownLabel code {
+  overflow: hidden;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+}
+.breakdownCount {
+  position: relative;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.breakdownEmpty {
+  margin: 0;
+  padding: 18px 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.sourceMark {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.flag {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.deviceSplit {
+  display: flex;
+  gap: 3px;
+  height: 12px;
+  margin: 4px 0 16px;
+}
+.deviceSplit span {
+  flex-basis: 0;
+  border-radius: 4px;
+}
+.deviceSplit .is-phone,
+.deviceDot.is-phone {
+  background: var(--accent-brand);
+}
+.deviceSplit .is-tablet,
+.deviceDot.is-tablet {
+  background: color-mix(in srgb, var(--accent-brand) 45%, white);
+}
+.deviceSplit .is-computer,
+.deviceDot.is-computer {
+  background: color-mix(in srgb, var(--foreground) 70%, transparent);
+}
+.deviceList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13.5px;
+}
+.deviceList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.deviceList strong {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.deviceDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+.browserLine {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}
+
+/* Visitor counts: one switch for the business, and what it counts. */
+.trackingSettings {
+  margin-top: 10px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.trackingSwitch {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+}
+.trackingSwitch > div {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+}
+.trackingSwitch strong {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.trackingSwitch span {
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}
+.trackingOptions {
+  display: grid;
+  gap: 14px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.trackingOptions strong {
+  font-weight: 500;
+}
+
+@container (max-width: 560px) {
+  .breakdownGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .journeySteps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 24px;
+  }
+  .journeyBand,
+  .journeyRate {
+    display: none;
+  }
+}
