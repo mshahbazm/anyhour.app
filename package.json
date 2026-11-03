@@ -9,13 +9,3 @@
     "dev:worker": "bun run --cwd packages/api worker",
     "dev:web": "bun run --cwd packages/web dev",
     "build": "bun run --filter '*' build",
-    "typecheck": "bun run --filter '*' typecheck",
-    "lint": "bun run --filter '*' lint",
-    "format": "bun run --filter '*' format",
-    "format:check": "bun run --filter '*' format:check",
-    "test": "bun run --cwd packages/api test",
-    "db:seed:local": "bun run --cwd packages/api db:seed:local",
-    "db:generate": "bun run --cwd packages/api db:generate",
-    "db:migrate": "bun run --cwd packages/api db:migrate"
-  }
-}

@@ -181,3 +181,7 @@ The helper's workspace and team skills support workspace details, member/invitat
 `GET/PATCH /api/organizations/:organizationId/workspace` reads/updates name and main website. Existing assistant updates accept nullable `goal` (`answers`, `enquiries`, `both`) and `goalNotes`. `POST /api/workspace-agent/chats/:chatId/blocks/:blockId/respond` accepts `value` and `clientMessageId`, resolves a saved block once, and streams the following agent turn. History responses include blocks; streams add `started` and `block` events. Blocks have fixed choice, action, summary/list, and confirmation renderers; model output never supplies executable UI or arbitrary endpoints. Pending choices expire after 24 hours or are superseded by a subsequent message. Exact typed choices can resolve a block; other free text continues the conversation. Removal confirmations are server-bound to a member and role, and permissions/state are checked again on execution.
 
 `workspaceManagement.test.ts` exercises the HTTP/agent flow with deterministic model and mail transports. It does not send real email. Browser checks cover block persistence, source inspection, independent preview chat, saved drafts, a working website backdrop, blocked embedding fallback, and mobile layouts. Pause a live knowledge worker while running local fixture tests against the same database, and restart it afterward.
+
+## License
+
+[AGPL-3.0](LICENSE). You can use, change and self-host Anyhour freely; if you run a changed version as a service for others, share your changes under the same license.
