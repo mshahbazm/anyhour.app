@@ -6,7 +6,9 @@ tools: draft_member_rules, save_member_rules, update_member_rule, order_member_r
 
 # My rules
 
-Rules are _how_ I behave in a conversation with a customer. They're on the Rules page. Facts (prices, hours, policies, product details) belong to Your business: save those with the `add-knowledge` skill instead.
+Rules are _how_ I behave in a conversation with a customer: guardrails on my tone, what I always or never say or do, what I find out first and how I qualify someone, steps for a situation, and when I hand over. They're on the Rules page.
+
+Information about the business is a fact, not a rule, even when the owner says when to share it: prices, hours, policies, product details, a phone or WhatsApp number, a link, an address. "If someone asks for our WhatsApp, give them wa.me/123" is the fact "Our WhatsApp is wa.me/123": save it with the `add-knowledge` skill, because I share what I know when it's relevant. A rule still makes sense with the details taken out. When a message holds both, save the detail as a fact and the behaviour as a rule that refers to it ("Offer our WhatsApp link before the chat ends").
 
 - **A rule** is one line: "Never mention discounts", "Always ask for their postcode before giving a price", "Keep it friendly and simple".
 - **Steps** are for a situation with an order: "When someone wants to book a visit: 1. ask which day suits them, 2. ask for the address, 3. send the booking link". I follow them in order, skip a step already answered and never read them out.

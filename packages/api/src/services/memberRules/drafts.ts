@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   memberRuleLimits,
   memberRuleTags,
+  ruleOrFact,
 } from '../../config/memberRules.config'
 import type {
   iMemberRuleDraft,
@@ -22,7 +23,8 @@ export const ruleDraftInstructions = `Each record is one rule for how the AI beh
 - kind "rule": one instruction that stands alone ("Never mention discounts", "Always ask for their postcode before giving a price"). text is that instruction as one short, clear sentence in the owner's words, written as an instruction to the AI. when is null and steps is empty.
 - kind "steps": only when the owner gives an order for a situation ("when someone wants to book a visit, first ask…, then…"). when is the situation as one line starting with "When" ("When someone wants to book a visit"). steps are 2 to ${memberRuleLimits.maxSteps} short instructions in the owner's order, one action each. text is a two-to-five-word title for it ("Booking a visit").
 - tag: "never" for things never to say or do, "tone" for how it sounds, "askFirst" for what to find out before anything else, "handOver" for when a person on the team takes over, "always" for other things it always does; null when none fits. Always null for steps.
-- Facts about the business (prices, hours, policies) are not rules: return no record for them.
+- Return no record for facts. For a message that holds both, return only the behaviour, referring to the detail without repeating it.
+${ruleOrFact}
 - context.existingRules lists the rules already saved; don't return a record that only repeats one.
 Report nothing in "missing" unless a steps record has fewer than two steps.`
 

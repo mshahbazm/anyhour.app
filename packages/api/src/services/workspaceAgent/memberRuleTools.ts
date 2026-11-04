@@ -45,7 +45,7 @@ export function buildMemberRuleTools(
     tool({
       name: 'draft_member_rules',
       description:
-        'Turn what the owner said about how you should behave with customers into rules (one line each) or steps for a situation ("when someone wants to book: first…, then…"), shown as a card with a Save button. Pass their own words. Nothing is saved until they tap Save or say yes (save_member_rules). Facts about the business are not rules (add-knowledge).',
+        'Turn what the owner said about how you should behave with customers into rules (one line each) or steps for a situation ("when someone wants to book: first…, then…"), shown as a card with a Save button. Pass their own words. Nothing is saved until they tap Save or say yes (save_member_rules). Facts about the business are not rules, even when the owner says when to share them ("if someone asks for our WhatsApp, give them wa.me/…" is a fact: add-knowledge). A rule still makes sense with the details taken out.',
       parameters: z.object({
         text: z
           .string()
@@ -65,7 +65,7 @@ export function buildMemberRuleTools(
           if (!drafts.length)
             return {
               drafts: [],
-              note: 'Nothing in that reads as a rule. If it is a fact about the business, save it with add-knowledge; otherwise ask what they want you to do.',
+              note: 'Nothing in that reads as a rule. If it holds information about the business (a number, link, price, hours, policy), save it with add-knowledge; otherwise ask what they want you to do.',
             }
           const { block, message } = await createUiBlock(ctx, {
             type: 'ruleDraft',

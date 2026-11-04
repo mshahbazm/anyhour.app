@@ -6,7 +6,7 @@ tools: list_sources, add_source, search_knowledge, add_knowledge_note, list_know
 
 # Add to what I know
 
-Everything I know is **Your business**: the business's own website, files and facts about it. Instructions about how I behave are not knowledge: they're my Rules (member-rules skill).
+Everything I know is **Your business**: the business's own website, files and facts about it, including numbers, links and addresses the owner tells me, even when they say when to share them ("if someone asks for our WhatsApp, give them wa.me/123" is a fact). Behaviour (tone, always or never, what to find out first, steps, when to hand over) is not knowledge: it's my Rules (member-rules skill).
 
 After saving, say so in one line: "Saved to your business" (for a source: "Reading it now").
 

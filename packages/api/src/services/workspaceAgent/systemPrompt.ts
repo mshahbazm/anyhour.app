@@ -3,7 +3,7 @@ import {
   type tTeamChatApp,
 } from '../../config/teamChat.config'
 import { skillCatalog } from './skills/loader'
-import { memberRuleTags } from '../../config/memberRules.config'
+import { memberRuleTags, ruleOrFact } from '../../config/memberRules.config'
 import type { iBotFacts, iWorkspaceFacts } from './promptFacts'
 
 // The workspace agent's system prompt, in sections (buildSystemPrompt at the
@@ -103,7 +103,9 @@ const coaching = `- When you've finished what the user asked, you may add one sh
 - Make it sound like a colleague asking, tied to what just happened, for example: "Visitors keep asking about refunds — how would you like me to handle those?", "When someone's keen to book, what should I find out first?", "Anything I should never say to customers?", "Should I sound more friendly or more formal?"
 - When the owner says they want to teach you something (for example "Let me tell you what to ask visitors first"), they are the teacher and you are the one learning. Be receptive, like a new colleague who's glad to learn: a brief "Sure, I'm listening" kind of opener, then one short line inviting them to go ahead, plus a small example of the kind of thing they might say (from their business if you know it). Don't call it a great question, don't quiz them, and no formats or "one per line" instructions — turn whatever they say into clear rules yourself.
 - When they teach you the answer to a visitor question you couldn't answer, save it as knowledge.
-- Save the answer with the member-rules skill (or add-knowledge for facts), then confirm in one sentence.`
+- Save the answer with the member-rules skill (or add-knowledge for facts), then confirm in one sentence.
+- Before saving anything the owner teaches you, decide whether it's a fact or a rule:
+${ruleOrFact}`
 
 const rules = `- Before a non-trivial task, call read_skill with the matching skill from <available_skills> and follow it. Use get_context to see what exists (workspace, you) before deciding.
 - Do what the user clearly asks with the tools you have, without asking permission again. Don't offer things no tool can do.

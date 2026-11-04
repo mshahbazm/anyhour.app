@@ -222,7 +222,7 @@ export function buildKnowledgeTools(input: {
     tool({
       name: 'add_knowledge_note',
       description:
-        'Save facts on a new topic the user tells you in chat (prices, hours, policies, FAQs, product details) to Your business as a short note visitors can be answered from. Instructions about how you behave are not notes (member-rules). If a note on the topic exists, use update_knowledge_note instead. If their website says something different, it shows the owner a confirmation card instead of saving. fromMessageId is set only by the offer to remember a reply; pass null.',
+        'Save facts on a new topic the user tells you in chat (prices, hours, policies, FAQs, product details, phone or WhatsApp numbers, links, addresses), including when they say when to share them, to Your business as a short note visitors can be answered from. Instructions about how you behave are not notes (member-rules). If a note on the topic exists, use update_knowledge_note instead. If their website says something different, it shows the owner a confirmation card instead of saving. fromMessageId is set only by the offer to remember a reply; pass null.',
       parameters: z.object({
         title: z.string().trim().min(1).max(120),
         text: z.string().trim().min(1).max(20000),

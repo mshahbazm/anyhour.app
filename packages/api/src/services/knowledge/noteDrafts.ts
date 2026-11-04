@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { tNoteDraft } from '../../types/draft.types'
+import { ruleOrFact } from '../../config/memberRules.config'
 import { draftFromText } from '../ai/draftFromText'
 import { listNotes } from './notes'
 import type { iKnowledgeOwner } from './owner'
@@ -18,8 +19,9 @@ const draftSchema = z.object({
 })
 
 export const noteDraftInstructions = `Return exactly one record for what the owner told you about their business.
-- kind "fact": something true about the business (prices, opening hours, services, delivery, policies, location, how something works). title is the topic in two to six words ("Opening hours", "Delivery charges"). text is the fact in plain words, as the business stating it, in one to three short sentences. Keep every detail the owner gave; add nothing.
-- kind "rule": an instruction about how the AI should talk or behave ("be more formal", "always ask for their postcode", "never mention discounts"). title and text are null.
+- kind "fact": information about the business, including when the owner says when to share it. title is the topic in two to six words ("Opening hours", "Delivery charges"). text is the fact in plain words, as the business stating it, in one to three short sentences. Keep every detail the owner gave; add nothing.
+- kind "rule": only behaviour, with no information to keep ("be more formal", "always ask for their postcode", "never mention discounts"). title and text are null. When the text holds a detail and a behaviour, it's a fact: keep the detail.
+${ruleOrFact}
 - When the text has several facts, title the main topic and keep all of them in text.
 - context.notes lists the notes already saved. When the fact is on the same topic as one of them, use that note's title exactly, and write text as the whole updated note: the owner's new words, plus what that note says that they didn't change. This is the only time you repeat anything from context.
 Report nothing in "missing".`
