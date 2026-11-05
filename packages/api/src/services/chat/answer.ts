@@ -166,10 +166,13 @@ export async function createAnswerStream(
   const blocksTool = tool({
     name: 'send_blocks',
     description:
-      'Show one tappable block under your reply: quick replies (choices), an option list (list), a checklist, or a short contact form (contactForm). Only when it makes answering easier. Still write your reply as normal text; the block appears beneath it. Each call replaces the previous block.',
+      'Show one tappable block under your reply: quick replies (choices), an option list (list), a checklist, a short contact form (contactForm), or the button that opens a chat with the business on WhatsApp (whatsapp; the number is filled in for you). Only when it makes answering easier. Still write your reply as normal text; the block appears beneath it. Each call replaces the previous block.',
     parameters: z.object({ block: blockInputSchema }),
     execute: async (input) => {
-      const resolved = resolveBlock(input.block)
+      const resolved = resolveBlock(input.block, {
+        channel,
+        whatsappNumber: record.appearance.whatsapp?.number ?? null,
+      })
       if (!resolved.ok) return { status: 'not_shown', reason: resolved.reason }
       block = resolved.block
       return { status: 'shown', visitorSees: resolved.block.fallback }
@@ -195,6 +198,7 @@ export async function createAnswerStream(
       ),
       preview,
       channel,
+      whatsappQuestion: record.appearance.whatsapp?.question ?? null,
     }),
     tools: preview
       ? [searchTool, citationTool, blocksTool]

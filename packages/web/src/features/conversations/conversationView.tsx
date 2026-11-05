@@ -169,6 +169,11 @@ export function ConversationView(props: {
                 : `${botName} is handling it`}
             {chat?.channel === 'whatsapp' && <> · WhatsApp</>}
             {chat && <> · {formatWhen(chat.createdAt)}</>}
+            {chat?.whatsappOpenedAt ? (
+              <> · Opened WhatsApp</>
+            ) : (
+              chat?.whatsappAskedAt && <> · Asked for WhatsApp</>
+            )}
           </p>
         </div>
         <Button

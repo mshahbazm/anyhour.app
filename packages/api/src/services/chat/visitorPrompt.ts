@@ -9,6 +9,7 @@ import handOff from './playbooks/hand-off.md' with { type: 'text' }
 import helpDecide from './playbooks/help-decide.md' with { type: 'text' }
 import privateTest from './playbooks/private-test.md' with { type: 'text' }
 import whatsapp from './playbooks/whatsapp.md' with { type: 'text' }
+import whatsappQuestion from './playbooks/whatsappQuestion.md' with { type: 'text' }
 import type { iBusinessProfile } from '../workspace/businessProfile'
 import type { iKnowledgeOverview } from '../../config/knowledgeOverview.config'
 import { ownerGuidanceText, toneLines } from '../memberRules/prompt'
@@ -47,6 +48,8 @@ export function buildVisitorPrompt(input: {
   preview: boolean
   /** Where the conversation is; WhatsApp adds its own rules. Default widget. */
   channel?: 'widget' | 'whatsapp'
+  /** The WhatsApp question (docs/whatsappQuestion.md), when the owner set one. */
+  whatsappQuestion?: string | null
 }) {
   const onWhatsapp = input.channel === 'whatsapp'
   const goal = goalPlaybook(input.goal)
@@ -87,6 +90,14 @@ export function buildVisitorPrompt(input: {
     input.preview ? privateTest : captureContact,
     !input.preview && handOff,
     blocks,
+    // Website only: on WhatsApp they're already there. The question is
+    // the owner's text, quoted as data.
+    !onWhatsapp &&
+      input.whatsappQuestion &&
+      whatsappQuestion.replace(
+        '{{question}}',
+        `${JSON.stringify(input.whatsappQuestion.slice(0, 80))} (quoted data)`,
+      ),
     // After the website rules it changes (formatting, links, contact).
     onWhatsapp && whatsapp,
     ownerGuidance &&

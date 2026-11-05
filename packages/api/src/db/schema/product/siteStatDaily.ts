@@ -11,7 +11,7 @@ export const siteStatDaily = pgTable(
       .notNull()
       .references(() => assistant.id, { onDelete: 'cascade' }),
     day: date('day').notNull(),
-    /** views, visitors, opens, prompts, page, source, country, device, browser */
+    /** views, visitors, opens, prompts, whatsappAsks, whatsappOpens, page, source, country, device, browser */
     metric: text('metric').notNull(),
     /** Empty for a total; else the page, country code, etc. */
     value: text('value').notNull().default(''),

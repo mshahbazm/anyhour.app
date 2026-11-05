@@ -135,8 +135,13 @@ function Widget(props: {
     <BotRuntimeProvider
       messages={messages}
       busy={busy}
-      starterPrompts={appearance.starterPrompts}
+      starterPrompts={
+        appearance.whatsapp?.question
+          ? [...appearance.starterPrompts, appearance.whatsapp.question]
+          : appearance.starterPrompts
+      }
       onSend={send}
+      onWhatsappOpened={transport.whatsappOpened}
     >
       <AssistantModalPrimitive.Root
         open={open}

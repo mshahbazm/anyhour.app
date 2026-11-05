@@ -153,6 +153,27 @@ export function createTransport(apiOrigin: string, botId: string) {
       return (await response.json()) as { messages: iBotMessage[] } & iTeamState;
     },
 
+    /** The visitor opened a WhatsApp button. Fire and forget: keepalive lets it
+     *  finish while the page hands over to WhatsApp. */
+    whatsappOpened(blockId: string) {
+      const existing = stored();
+      if (!existing) return;
+      void authorization()
+        .then((value) =>
+          fetch(`${base}/conversations/${existing.id}/whatsapp-open`, {
+            method: "POST",
+            keepalive: true,
+            headers: {
+              authorization: value,
+              "content-type": "application/json",
+              "x-conversation-token": existing.resumeToken,
+            },
+            body: JSON.stringify({ blockId }),
+          }),
+        )
+        .catch(() => undefined);
+    },
+
     reset() {
       try {
         localStorage.removeItem(storageKey);

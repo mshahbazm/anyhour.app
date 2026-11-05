@@ -8,11 +8,7 @@ import {
   launcherLabelLength,
   LauncherButton,
 } from '@anyhour/widget'
-import type {
-  iAppearance,
-  tLauncherIcon,
-  tLauncherStyle,
-} from '@anyhour/widget'
+import type { tLauncherIcon, tLauncherStyle } from '@anyhour/widget'
 import { useRef, useState } from 'react'
 import {
   Sheet,
@@ -23,7 +19,7 @@ import {
 } from '#/components/ui/sheet'
 import { BotAvatar, botPictureUrl } from '../bots/botAvatar'
 import { api } from '../workspace/api'
-import type { iAssistant } from '../workspace/types'
+import type { iAssistant, tOwnerAppearance } from '../workspace/types'
 import { FirstImpression } from './firstImpression'
 import '@anyhour/widget/styles.css'
 import './tryBot.css'
@@ -67,8 +63,12 @@ export function LookSheet(
 
 function LookSettings(props: iLookProps) {
   const bot = props.bot
-  const saved = { ...defaultAppearance, ...bot?.appearance }
-  const [appearance, setAppearance] = useState<iAppearance>(saved)
+  const saved: tOwnerAppearance = {
+    ...defaultAppearance,
+    whatsapp: null,
+    ...bot?.appearance,
+  }
+  const [appearance, setAppearance] = useState<tOwnerAppearance>(saved)
   const [welcome, setWelcome] = useState(bot?.welcomeMessage ?? '')
   const [hex, setHex] = useState(saved.brandColor ?? '')
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
@@ -78,7 +78,10 @@ function LookSettings(props: iLookProps) {
   const name = bot?.name ?? 'us'
 
   // Changes save on their own, a moment after the owner stops editing.
-  function save(next: { appearance?: iAppearance; welcomeMessage?: string }) {
+  function save(next: {
+    appearance?: Omit<tOwnerAppearance, 'whatsapp'>
+    welcomeMessage?: string
+  }) {
     if (!props.organizationId || !bot) return
     window.clearTimeout(timer.current)
     setStatus('saving')
@@ -98,10 +101,12 @@ function LookSettings(props: iLookProps) {
         })
     }, 500)
   }
-  function update(change: Partial<iAppearance>) {
+  function update(change: Partial<Omit<tOwnerAppearance, 'whatsapp'>>) {
     const next = { ...appearance, ...change }
     setAppearance(next)
-    save({ appearance: next })
+    // The WhatsApp question saves through its own endpoint, never here.
+    const { whatsapp: _whatsapp, ...rest } = next
+    save({ appearance: rest })
   }
 
   return (
@@ -236,6 +241,13 @@ function LookSettings(props: iLookProps) {
             save({ welcomeMessage: text.trim() || 'How can I help?' })
           }}
           onQuestions={(starterPrompts) => update({ starterPrompts })}
+          onWhatsapp={(updated) => {
+            setAppearance((current) => ({
+              ...current,
+              whatsapp: updated.appearance?.whatsapp ?? null,
+            }))
+            props.onChanged(updated)
+          }}
         />
       </div>
     </div>

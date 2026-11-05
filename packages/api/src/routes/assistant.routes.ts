@@ -15,6 +15,14 @@ import { forgetSiteSettings } from '../services/widget/site'
 import { syncWebsiteChannels } from '../services/connections/website'
 import { siteInsights } from '../services/insights/siteInsights'
 import { insightsLimits } from '../config/tracking.config'
+import { saveWhatsappQuestionSchema } from '../schemas/whatsappQuestion.schema'
+import { findWhatsappNumber } from '../services/whatsappQuestion/findNumber'
+import {
+  appearanceKeepingWhatsapp,
+  ownerAssistant,
+  removeWhatsappQuestion,
+  saveWhatsappQuestion,
+} from '../services/whatsappQuestion/question'
 
 export const assistantRoutes = new Hono()
 
@@ -27,7 +35,7 @@ assistantRoutes.get('/:organizationId/assistant', async (c) => {
     'assistant',
     'read',
   )
-  return c.json(await workspaceAi(organizationId))
+  return c.json(await ownerAssistant(await workspaceAi(organizationId)))
 })
 
 assistantRoutes.get('/:organizationId/assistants/:assistantId', async (c) => {
@@ -38,7 +46,9 @@ assistantRoutes.get('/:organizationId/assistants/:assistantId', async (c) => {
     'assistant',
     'read',
   )
-  return c.json(await ownedAssistant(organizationId, assistantId))
+  return c.json(
+    await ownerAssistant(await ownedAssistant(organizationId, assistantId)),
+  )
 })
 
 assistantRoutes.patch(
@@ -96,6 +106,10 @@ assistantRoutes.patch(
         .update(assistant)
         .set({
           ...input,
+          // The WhatsApp question is only changed by its own routes.
+          appearance: input.appearance
+            ? appearanceKeepingWhatsapp(input.appearance)
+            : undefined,
           allowedOrigins,
           nextRefreshAt: input.refreshIntervalHours
             ? new Date(Date.now() + input.refreshIntervalHours * 3_600_000)
@@ -116,9 +130,59 @@ assistantRoutes.patch(
       return row
     })
     forgetSiteSettings(assistantId)
-    return c.json(updated)
+    return c.json(await ownerAssistant(updated))
   },
 )
+
+// The WhatsApp question (docs/whatsappQuestion.md): the number to prefill,
+// and saving or removing the question with its rule.
+const whatsappQuestion =
+  '/:organizationId/assistants/:assistantId/whatsapp-question'
+
+assistantRoutes.get(`${whatsappQuestion}/number`, async (c) => {
+  const { organizationId, assistantId } = c.req.param()
+  await requirePermission(
+    c.req.raw.headers,
+    organizationId,
+    'assistant',
+    'read',
+  )
+  await ownedAssistant(organizationId, assistantId)
+  return c.json(await findWhatsappNumber(organizationId, assistantId))
+})
+
+assistantRoutes.put(
+  whatsappQuestion,
+  validateJson(saveWhatsappQuestionSchema),
+  async (c) => {
+    const { organizationId, assistantId } = c.req.param()
+    await requirePermission(
+      c.req.raw.headers,
+      organizationId,
+      'assistant',
+      'update',
+    )
+    return c.json(
+      await saveWhatsappQuestion(
+        organizationId,
+        assistantId,
+        c.req.valid('json'),
+      ),
+    )
+  },
+)
+
+assistantRoutes.delete(whatsappQuestion, async (c) => {
+  const { organizationId, assistantId } = c.req.param()
+  await requirePermission(
+    c.req.raw.headers,
+    organizationId,
+    'assistant',
+    'update',
+  )
+  await removeWhatsappQuestion(organizationId, assistantId)
+  return c.body(null, 204)
+})
 
 // Visits, chats and leads from the website over 7, 30 or 90 days.
 assistantRoutes.get(

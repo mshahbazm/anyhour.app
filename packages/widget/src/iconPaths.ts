@@ -36,5 +36,11 @@ export const launcherIcons = {
 } as const;
 
 export type tLauncherIcon = keyof typeof launcherIcons;
+
+/** The WhatsApp glyph on the WhatsApp question and the WhatsApp button. */
+export const whatsappIcon = {
+  label: "WhatsApp",
+  path: "M7.9 20A9 9 0 1 0 4 16.1L2 22ZM9 9.4c0 3 2.6 5.6 5.6 5.6l.9-1.5-1.9-1-.9.8a4.2 4.2 0 0 1-2-2l.8-.9-1-1.9Z",
+} as const;
 export const launcherIconIds = Object.keys(launcherIcons) as tLauncherIcon[];
 

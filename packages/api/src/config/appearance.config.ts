@@ -1,3 +1,5 @@
+import type { iWhatsappQuestion } from './whatsappQuestion.config'
+
 // How the chat looks on the owner's website. Kept small on purpose: a brand
 // colour, how the closed chat appears, and a few starter questions.
 export const launcherStyles = ['avatar', 'icon', 'label'] as const
@@ -30,6 +32,11 @@ export interface iAppearance {
   launcherLabel?: string
   /** Shown before a visitor's first message, then never again. */
   starterPrompts: string[]
+  /**
+   * The WhatsApp question (docs/whatsappQuestion.md). Only its own routes
+   * write it; the public widget config carries the question alone.
+   */
+  whatsapp?: iWhatsappQuestion | null
 }
 
 export const defaultAppearance: iAppearance = {

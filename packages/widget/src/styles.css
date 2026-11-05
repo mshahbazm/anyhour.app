@@ -241,6 +241,18 @@
   background: var(--wp-brand);
   color: var(--wp-on-brand);
 }
+.wpBotStarter.isWhatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.wpBotStarter.isWhatsapp svg {
+  flex: none;
+  color: #1da851;
+}
+.wpBotStarter.isWhatsapp:hover svg {
+  color: inherit;
+}
 
 /* Composer */
 .wpBotStaffFace {
@@ -389,6 +401,28 @@
   margin: 0;
   color: var(--wp-muted);
   font-size: 12px;
+}
+/* The WhatsApp button: a link that opens WhatsApp in a new tab */
+.wpBlockWhatsapp {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #25d366;
+  color: #0b2e17;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 140ms;
+}
+.wpBlockWhatsapp:hover {
+  background: #1ebe5b;
+}
+.wpBlockWhatsapp:focus-visible {
+  outline: 2px solid #0b2e17;
+  outline-offset: 2px;
 }
 .wpBlockChecklist,
 .wpBlockForm {

@@ -17,6 +17,22 @@ export interface iOrganization {
   name: string
   role?: string
 }
+// Mirrors the owner shape of assistant.appearance.whatsapp (docs/whatsappQuestion.md).
+export type tWhatsappApproach =
+  'straightAway' | 'quickQuestion' | 'qualifyFirst'
+export interface iWhatsappQuestion {
+  question: string
+  /** Digits only, with the country code. */
+  number: string
+  /** `custom` when the rule was changed elsewhere, e.g. in chat. */
+  approach: tWhatsappApproach | 'custom'
+  ruleId: string | null
+}
+/** The appearance as the owner sees it: with the WhatsApp number and rule. */
+export type tOwnerAppearance = Omit<iAppearance, 'whatsapp'> & {
+  whatsapp?: iWhatsappQuestion | null
+}
+
 export interface iAssistant {
   id: string
   name: string
@@ -26,7 +42,7 @@ export interface iAssistant {
   welcomeMessage: string
   status: string
   allowedOrigins?: string[]
-  appearance?: iAppearance
+  appearance?: tOwnerAppearance
   /** Website insights: visitor counts on (off by default). */
   tracking?: boolean
   /** What visitor counts count while they're on (all on by default). */

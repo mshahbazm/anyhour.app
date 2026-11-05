@@ -72,6 +72,9 @@ export const blockInputSchema = z.discriminatedUnion('kind', [
       'What they want, as a short title for the team, e.g. "Whitening quote".',
     ),
   }),
+  // The WhatsApp button (docs/whatsappQuestion.md): the server fills in the
+  // business's number, so the model never writes it.
+  z.object({ kind: z.literal('whatsapp') }),
 ])
 export type tBlockInput = z.infer<typeof blockInputSchema>
 
@@ -119,6 +122,13 @@ export const chatBlockSchema = z.discriminatedUnion('kind', [
     ask: z.enum(['email', 'phone', 'emailOrPhone']),
     askName: z.boolean(),
     topic: z.string().min(1).max(120),
+    fallback,
+  }),
+  z.object({
+    id,
+    kind: z.literal('whatsapp'),
+    label: z.string().min(1).max(40),
+    url: z.url().max(400),
     fallback,
   }),
 ])

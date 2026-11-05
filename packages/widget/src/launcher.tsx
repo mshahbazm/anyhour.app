@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes } from "react";
 import { greeting, launcherLabel } from "./appearance";
 import type { iAppearance } from "./appearance";
 import { BotAvatarImage } from "./botChat";
-import { LauncherIcon } from "./icons";
+import { LauncherIcon, WhatsappIcon } from "./icons";
 
 const closeIcon = (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
@@ -53,6 +53,8 @@ export function Teaser(props: {
   name: string;
   welcomeMessage?: string;
   prompts: string[];
+  /** The WhatsApp question, after the starter questions. */
+  whatsappQuestion?: string;
   onOpen: () => void;
   onPrompt: (prompt: string) => void;
   onDismiss?: () => void;
@@ -72,6 +74,16 @@ export function Teaser(props: {
           {prompt}
         </button>
       ))}
+      {props.whatsappQuestion && (
+        <button
+          type="button"
+          className="wpTeaserPrompt isWhatsapp"
+          onClick={() => props.onPrompt(props.whatsappQuestion as string)}
+        >
+          <WhatsappIcon size={15} />
+          {props.whatsappQuestion}
+        </button>
+      )}
     </div>
   );
 }

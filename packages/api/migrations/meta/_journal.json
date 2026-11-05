@@ -547,6 +547,13 @@
       "when": 1793701298530,
       "tag": "0077_businessHours",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1793818357908,
+      "tag": "0078_fearless_the_hood",
+      "breakpoints": true
     }
   ]
 }

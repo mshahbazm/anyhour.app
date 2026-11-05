@@ -180,6 +180,15 @@ export function collect(input: {
     })
 }
 
+/** A chat event the server sees itself (docs/whatsappQuestion.md); the
+ *  caller checks that chat is counted. */
+export function countChatEvent(
+  assistantId: string,
+  metric: 'whatsappAsks' | 'whatsappOpens',
+) {
+  add(assistantId, new Date().toISOString().slice(0, 10), metric)
+}
+
 function chunks<T>(items: T[], size: number) {
   const out: T[][] = []
   for (let index = 0; index < items.length; index += size)

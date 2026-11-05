@@ -11,6 +11,9 @@ export interface iAppearance {
   /** Text on the "label" button. Empty uses "Chat with {name}". */
   launcherLabel?: string;
   starterPrompts: string[];
+  /** The WhatsApp question, shown after the starter questions. Public config
+   *  carries only its text, never the number. */
+  whatsapp?: { question: string } | null;
 }
 
 export const defaultAppearance: iAppearance = {

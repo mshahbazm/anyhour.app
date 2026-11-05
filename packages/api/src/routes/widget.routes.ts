@@ -22,7 +22,12 @@ import {
   staffFirstNames,
   visitorUpdates,
 } from '../services/support/conversations'
-import { defaultAppearance } from '../config/appearance.config'
+import { whatsappOpenSchema } from '../schemas/whatsappQuestion.schema'
+import { publicAppearance } from '../services/whatsappQuestion/question'
+import {
+  noteWhatsappAsk,
+  noteWhatsappOpen,
+} from '../services/whatsappQuestion/tracking'
 import { recordInstallSighting } from '../services/widget/installs'
 import { allowedSite } from '../services/widget/site'
 import {
@@ -149,7 +154,7 @@ widgetRoutes.get('/:assistantId/launcher', async (c) => {
     id: record.id,
     name: record.name,
     welcomeMessage: visitorGreeting(record),
-    appearance: { ...defaultAppearance, ...record.appearance },
+    appearance: publicAppearance(record.appearance),
     pictureUrl: record.pictureKey
       ? `/api/widget/${record.id}/picture?v=${encodeURIComponent(record.pictureKey)}`
       : null,
@@ -222,7 +227,7 @@ widgetRoutes.get('/:assistantId/config', async (c) => {
     id: record.id,
     name: record.name,
     welcomeMessage: visitorGreeting(record),
-    appearance: record.appearance,
+    appearance: publicAppearance(record.appearance),
     pictureUrl: record.pictureKey
       ? `/api/widget/${record.id}/picture?v=${encodeURIComponent(record.pictureKey)}`
       : null,
@@ -321,6 +326,25 @@ widgetRoutes.get(
   },
 )
 
+// The visitor opened the WhatsApp button (docs/whatsappQuestion.md). Sent
+// as the link opens, so it never holds up the visitor.
+widgetRoutes.post(
+  '/:assistantId/conversations/:conversationId/whatsapp-open',
+  validateJson(whatsappOpenSchema),
+  async (c) => {
+    const { conversationId } = c.req.param()
+    const assistantId = await bot(c)
+    await access(c, assistantId, 'whatsappOpen', 20)
+    const chat = await ownedConversation(
+      assistantId,
+      conversationId,
+      c.req.header('x-conversation-token'),
+    )
+    await noteWhatsappOpen(chat, c.req.valid('json').blockId)
+    return c.body(null, 204)
+  },
+)
+
 widgetRoutes.post(
   '/:assistantId/conversations/:conversationId/messages',
   validateJson(sendMessageSchema),
@@ -337,6 +361,13 @@ widgetRoutes.post(
     const turn = await visitorTurn(chat.id, sent)
     const input = { ...sent, ...turn }
     const reply = await beginReply(chat.id, input)
+    // Asking for WhatsApp is recorded, never at the cost of the answer.
+    await noteWhatsappAsk(chat, input.content).catch((error) =>
+      console.error(
+        'WhatsApp ask not recorded',
+        error instanceof Error ? error.name : 'Unknown error',
+      ),
+    )
     // The contact form records the lead through the same capture as the
     // AI's capture_lead, keyed to this turn, so the AI
     // recording it too finds the same lead.

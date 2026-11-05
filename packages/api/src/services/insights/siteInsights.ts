@@ -2,7 +2,14 @@ import { and, count, eq, gte, isNull, sql } from 'drizzle-orm'
 import { db } from '../../db'
 import { conversation, lead, siteStatDaily } from '../../db/schema'
 
-const totals = ['visitors', 'views', 'opens', 'prompts'] as const
+const totals = [
+  'visitors',
+  'views',
+  'opens',
+  'prompts',
+  'whatsappAsks',
+  'whatsappOpens',
+] as const
 const breakdowns = ['page', 'source', 'country', 'device', 'browser'] as const
 const topPerBreakdown = 8
 
@@ -21,6 +28,8 @@ function emptyTotals(): tTotals {
     views: 0,
     opens: 0,
     prompts: 0,
+    whatsappAsks: 0,
+    whatsappOpens: 0,
     conversations: 0,
     leads: 0,
   }

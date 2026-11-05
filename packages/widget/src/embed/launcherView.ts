@@ -1,5 +1,5 @@
 import { greeting, launcherLabel } from "../appearance";
-import { launcherIcons } from "../iconPaths";
+import { launcherIcons, whatsappIcon } from "../iconPaths";
 import type { tLauncherIcon } from "../iconPaths";
 import type { iWidgetConfig } from "./transport";
 
@@ -9,6 +9,10 @@ import type { iWidgetConfig } from "./transport";
 const svgNs = "http://www.w3.org/2000/svg";
 
 function icon(id: string | undefined, size: number) {
+  return pathIcon((launcherIcons[id as tLauncherIcon] ?? launcherIcons.chat).path, size);
+}
+
+function pathIcon(d: string, size: number) {
   const svg = document.createElementNS(svgNs, "svg");
   const attributes = {
     width: size,
@@ -23,7 +27,7 @@ function icon(id: string | undefined, size: number) {
   };
   for (const [name, value] of Object.entries(attributes)) svg.setAttribute(name, String(value));
   const path = document.createElementNS(svgNs, "path");
-  path.setAttribute("d", (launcherIcons[id as tLauncherIcon] ?? launcherIcons.chat).path);
+  path.setAttribute("d", d);
   svg.append(path);
   return svg;
 }
@@ -81,6 +85,14 @@ export function teaserView(props: {
     const chip = element("button", "wpTeaserPrompt", prompt);
     chip.type = "button";
     chip.onclick = () => props.onPrompt(prompt);
+    root.append(chip);
+  }
+  const whatsapp = config.appearance.whatsapp?.question;
+  if (whatsapp) {
+    const chip = element("button", "wpTeaserPrompt isWhatsapp");
+    chip.type = "button";
+    chip.append(pathIcon(whatsappIcon.path, 15), whatsapp);
+    chip.onclick = () => props.onPrompt(whatsapp);
     root.append(chip);
   }
   return root;

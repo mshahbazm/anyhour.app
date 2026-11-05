@@ -8,7 +8,8 @@ import { createContext, useContext } from "react";
 import { brandStyle, greeting } from "./appearance";
 import type { iAppearance } from "./appearance";
 import { Block } from "./blocks";
-import type { tChatBlock, tSendMessage } from "./blocks";
+import type { tChatBlock, tSendMessage, tWhatsappOpened } from "./blocks";
+import { WhatsappIcon } from "./icons";
 import { linkProps, RichText } from "./richText";
 import { BotRuntimeProvider } from "./runtime";
 import type { iBotCitation, iBotMessage } from "./runtime";
@@ -170,6 +171,7 @@ function AssistantMessage() {
 export function ChatWindow(props: iChatWindowProps) {
   const live = props.variant === "live";
   const prompts = props.appearance?.starterPrompts ?? [];
+  const whatsappQuestion = props.appearance?.whatsapp?.question;
   const running = useAuiState(({ thread }) => thread.isRunning);
   return (
     <ThreadPrimitive.Root
@@ -215,7 +217,7 @@ export function ChatWindow(props: iChatWindowProps) {
           components={{ UserMessage, AssistantMessage }}
           />
         </MessageContext.Provider>
-        {prompts.length > 0 && (
+        {(prompts.length > 0 || whatsappQuestion) && (
           <ThreadPrimitive.Empty>
             <div className="wpBotStarters">
               {prompts.map((prompt) => (
@@ -228,6 +230,16 @@ export function ChatWindow(props: iChatWindowProps) {
                   {prompt}
                 </ThreadPrimitive.Suggestion>
               ))}
+              {whatsappQuestion && (
+                <ThreadPrimitive.Suggestion
+                  prompt={whatsappQuestion}
+                  send
+                  className="wpBotStarter isWhatsapp"
+                >
+                  <WhatsappIcon size={15} />
+                  {whatsappQuestion}
+                </ThreadPrimitive.Suggestion>
+              )}
             </div>
           </ThreadPrimitive.Empty>
         )}
@@ -265,6 +277,7 @@ interface iBotChatProps extends iChatWindowProps {
   messages: iBotMessage[];
   busy: boolean;
   onSend: tSendMessage;
+  onWhatsappOpened?: tWhatsappOpened;
 }
 
 // A self-contained chat: runtime plus window. Used for the owner's test chat.
@@ -275,6 +288,7 @@ export function BotChat(props: iBotChatProps) {
       busy={props.busy}
       disabled={props.disabled}
       onSend={props.onSend}
+      onWhatsappOpened={props.onWhatsappOpened}
     >
       <ChatWindow {...props} />
     </BotRuntimeProvider>

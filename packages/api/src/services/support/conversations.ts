@@ -283,6 +283,8 @@ export async function inboxConversation(
       handoffSummary: chat.handoffSummary,
       handoffDraft: chat.handoffDraft,
       leadIds,
+      whatsappAskedAt: chat.whatsappAskedAt?.toISOString() ?? null,
+      whatsappOpenedAt: chat.whatsappOpenedAt?.toISOString() ?? null,
     },
     messages: messages.map((item): iInboxMessage => ({
       id: item.id,

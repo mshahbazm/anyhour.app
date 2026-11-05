@@ -11,6 +11,8 @@ import type {
 } from '../../schemas/chatBlock.schema'
 import { normalizePhone } from '../contacts/identities'
 import { ApiError } from '../http/apiError'
+import { whatsappButton } from '../../config/whatsappQuestion.config'
+import { whatsappUrl } from '../whatsappQuestion/number'
 
 // Chat UI blocks (docs/channels.md, wave 4): turning what the model asked
 // for into a stored block, the plain-text fallback we write for it, and
@@ -50,6 +52,8 @@ export function blockFallback(block: tBlockWithoutFallback) {
       ].join('\n')
     case 'contactForm':
       return contactQuestions[block.ask]
+    case 'whatsapp':
+      return `Chat with us on WhatsApp: ${block.url}`
   }
 }
 
@@ -58,11 +62,35 @@ const blockId = () => `b_${randomBytes(9).toString('base64url')}`
 export type tResolvedBlock =
   { ok: true; block: tChatBlock } | { ok: false; reason: string }
 
+/** Where the reply goes, for blocks that depend on it. */
+export interface iBlockContext {
+  channel: 'widget' | 'whatsapp'
+  /** The business's WhatsApp number (appearance.whatsapp), when set. */
+  whatsappNumber: string | null
+}
+
 /** The stored block for what the model sent, or why it can't be shown. */
-export function resolveBlock(input: tBlockInput): tResolvedBlock {
+export function resolveBlock(
+  input: tBlockInput,
+  context: iBlockContext,
+): tResolvedBlock {
   let block: tBlockWithoutFallback
   const id = blockId()
-  if (input.kind === 'choices' || input.kind === 'list') {
+  if (input.kind === 'whatsapp') {
+    if (context.channel === 'whatsapp')
+      return { ok: false, reason: 'They’re already on WhatsApp.' }
+    if (!context.whatsappNumber)
+      return {
+        ok: false,
+        reason: 'The business hasn’t added a WhatsApp number.',
+      }
+    block = {
+      id,
+      kind: 'whatsapp',
+      label: whatsappButton.label,
+      url: whatsappUrl(context.whatsappNumber),
+    }
+  } else if (input.kind === 'choices' || input.kind === 'list') {
     const labels = input.options.map((item) => item.label.trim())
     if (
       new Set(labels.map((item) => item.toLowerCase())).size !== labels.length

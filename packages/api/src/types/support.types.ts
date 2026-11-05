@@ -77,6 +77,10 @@ export interface iInboxConversation {
     // The AI's suggested reply, for the composer.
     handoffDraft: string | null
     leadIds: string[]
+    // The WhatsApp question (docs/whatsappQuestion.md): when the visitor
+    // asked for WhatsApp and when they opened the WhatsApp button.
+    whatsappAskedAt: string | null
+    whatsappOpenedAt: string | null
   }
   messages: iInboxMessage[]
 }

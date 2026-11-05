@@ -138,6 +138,18 @@
   background: var(--wp-brand);
   color: var(--wp-on-brand);
 }
+.wpTeaserPrompt.isWhatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.wpTeaserPrompt.isWhatsapp svg {
+  flex: none;
+  color: #1da851;
+}
+.wpTeaserPrompt.isWhatsapp:hover svg {
+  color: inherit;
+}
 .wpTeaserPrompt:nth-of-type(2) {
   animation: wpTeaserIn 420ms 80ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
@@ -146,6 +158,9 @@
 }
 .wpTeaserPrompt:nth-of-type(4) {
   animation: wpTeaserIn 420ms 240ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.wpTeaserPrompt:nth-of-type(5) {
+  animation: wpTeaserIn 420ms 320ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 .wpTeaserClose {
   position: absolute;

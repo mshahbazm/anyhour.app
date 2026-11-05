@@ -7,5 +7,6 @@ send_blocks shows one tappable block under your reply. Use it only when it makes
 - list: four to ten options to pick from, such as times, areas or services.
 - checklist: a few things to remember, such as what to bring. Only facts you found in the business's information.
 - contactForm: when the visitor wants the team to contact them, a short form for their details instead of asking in text. Topic is what they want, as a title for the team.
+- whatsapp: the button that opens a chat with the business on WhatsApp; nothing else to fill in. Only when your instructions mention the WhatsApp button.
 - A visitor's tap arrives as their message, in the words of the option they tapped.
 - If send_blocks says the block wasn't shown, carry on in text.

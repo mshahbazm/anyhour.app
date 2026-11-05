@@ -69,6 +69,10 @@ export interface iInboxConversation {
     handoffSummary: iHandoffSummary | null
     handoffDraft: string | null
     leadIds: string[]
+    /** The visitor tapped the WhatsApp question. */
+    whatsappAskedAt?: string | null
+    /** The visitor opened the WhatsApp button. */
+    whatsappOpenedAt?: string | null
   }
   messages: iInboxMessage[]
 }

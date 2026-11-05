@@ -32,6 +32,12 @@ export function MessageBlock(props: { block: tChatBlock }) {
         </ul>
       </div>
     )
+  if (block.kind === 'whatsapp')
+    return (
+      <div className="transcriptBlock" aria-label="WhatsApp button shown">
+        <span className="blockChip">{block.label}</span>
+      </div>
+    )
   return (
     <div className="transcriptBlock isCard">
       <strong>Contact form: {block.topic}</strong>

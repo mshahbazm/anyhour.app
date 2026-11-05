@@ -325,23 +325,102 @@
   background: #f4f4f5;
   color: #1c1c1c;
 }
-.firstQuestions li.is-add {
+.firstQuestions li.is-adds {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
   padding: 0;
-  border: 1.5px dashed #a1a1aa;
+  border: 0;
   background: transparent;
 }
-.firstQuestions li.is-add button {
+.firstQuestions li.is-adds button {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   width: auto;
   height: auto;
   padding: 6px 13px;
+  border: 1.5px dashed #a1a1aa;
   color: #52525b;
   font-size: 13px;
 }
-.firstQuestions li.is-add button:hover:not(:disabled) {
+.firstQuestions li.is-adds button:hover:not(:disabled) {
   background: #fff;
+}
+.firstQuestions li.is-whatsapp {
+  padding-left: 6px;
+}
+.firstQuestions li > button.whatsappChip {
+  display: inline-flex;
+  gap: 6px;
+  width: auto;
+  min-width: 0;
+  height: auto;
+  padding: 0 0 0 7px;
+  color: inherit;
+  font-size: 13px;
+}
+.firstQuestions li > button.whatsappChip:hover:not(:disabled) {
+  background: none;
+  text-decoration: underline;
+}
+.whatsappChip svg {
+  flex: none;
+  color: #1da851;
+}
+.whatsappChip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The WhatsApp question, edited inline */
+.whatsappPanel {
+  display: grid;
+  gap: 12px;
+  padding: 12px 13px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.06);
+  color: #1c1c1c;
+  font-size: 13px;
+}
+.whatsappField {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.whatsappField > span,
+.whatsappField > legend {
+  margin-bottom: 1px;
+  padding: 0;
+  font-weight: 500;
+}
+.whatsappField > small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.whatsappChoice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.whatsappChoice input {
+  accent-color: #1c1c1c;
+}
+.whatsappActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.whatsappError {
+  margin: 0;
+  color: var(--destructive);
+  font-size: 12.5px;
 }
 .firstQuestions li.is-adding {
   width: 92%;

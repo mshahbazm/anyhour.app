@@ -1,8 +1,9 @@
 import { createContext, useContext, useState } from "react";
 import type { FormEvent } from "react";
+import { WhatsappIcon } from "./icons";
 
 // The AI's chat UI blocks under a reply: quick replies, an option
-// list, a checklist and a short contact form.
+// list, a checklist, a short contact form and the WhatsApp button.
 // Mirrors the API's stored block (chatBlock.schema.ts); this package
 // doesn't import the API.
 
@@ -17,6 +18,7 @@ export type tChatBlock = { id: string; fallback: string } & (
   | { kind: "list"; buttonLabel: string; options: iBlockOption[] }
   | { kind: "checklist"; title: string; items: Array<{ text: string; done: boolean }> }
   | { kind: "contactForm"; ask: "email" | "phone" | "emailOrPhone"; askName: boolean; topic: string }
+  | { kind: "whatsapp"; label: string; url: string }
 );
 
 /** A tap or the contact form, sent with the visitor's message. */
@@ -28,6 +30,31 @@ export interface iBlockAnswer {
 export type tSendMessage = (text: string, answer?: iBlockAnswer) => Promise<void> | void;
 
 export const SendContext = createContext<tSendMessage>(() => undefined);
+
+/** A visitor opened the WhatsApp button; never blocks the navigation. */
+export type tWhatsappOpened = (blockId: string) => void;
+
+export const WhatsappOpenedContext = createContext<tWhatsappOpened>(() => undefined);
+
+// Stays a working link on older replies too: the number doesn't expire.
+function WhatsappButton(props: { block: Extract<tChatBlock, { kind: "whatsapp" }> }) {
+  const opened = useContext(WhatsappOpenedContext);
+  const { block } = props;
+  return (
+    <div className="wpBlock">
+      <a
+        className="wpBlockWhatsapp"
+        href={block.url}
+        target="_blank"
+        rel="noopener"
+        onClick={() => opened(block.id)}
+      >
+        <WhatsappIcon size={18} />
+        {block.label}
+      </a>
+    </div>
+  );
+}
 
 function ContactForm(props: { block: Extract<tChatBlock, { kind: "contactForm" }>; active: boolean }) {
   const send = useContext(SendContext);
@@ -126,5 +153,6 @@ export function Block(props: { block: tChatBlock; active: boolean }) {
         </ul>
       </div>
     );
+  if (block.kind === "whatsapp") return <WhatsappButton block={block} />;
   return <ContactForm block={block} active={active} />;
 }

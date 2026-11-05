@@ -88,6 +88,7 @@ export function TryStage(props: {
                   ? appearance.starterPrompts
                   : (props.prompts ?? [])
               }
+              whatsappQuestion={appearance.whatsapp?.question}
               onOpen={() => setOpen(true)}
               onPrompt={(text) => {
                 setPrompt({ text, id: Date.now() })

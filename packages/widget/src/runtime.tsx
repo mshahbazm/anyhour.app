@@ -1,8 +1,8 @@
 import { AssistantRuntimeProvider, useExternalStoreRuntime } from "@assistant-ui/react";
 import type { AppendMessage, ThreadMessageLike } from "@assistant-ui/react";
 import type { ReactNode } from "react";
-import { SendContext } from "./blocks";
-import type { tChatBlock, tSendMessage } from "./blocks";
+import { SendContext, WhatsappOpenedContext } from "./blocks";
+import type { tChatBlock, tSendMessage, tWhatsappOpened } from "./blocks";
 
 export interface iBotCitation {
   sourceId: string;
@@ -50,6 +50,8 @@ function textOf(message: AppendMessage) {
     .trim();
 }
 
+const noop = () => undefined;
+
 // Our own transport keeps the messages; assistant-ui only renders them.
 export function BotRuntimeProvider(props: {
   messages: iBotMessage[];
@@ -58,6 +60,8 @@ export function BotRuntimeProvider(props: {
   starterPrompts?: string[];
   /** Typed messages, and taps or the contact form on a block (with `answer`). */
   onSend: tSendMessage;
+  /** A visitor opened a WhatsApp button; the dashboard preview can leave it out. */
+  onWhatsappOpened?: tWhatsappOpened;
   children: ReactNode;
 }) {
   const runtime = useExternalStoreRuntime({
@@ -73,7 +77,11 @@ export function BotRuntimeProvider(props: {
   });
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <SendContext.Provider value={props.onSend}>{props.children}</SendContext.Provider>
+      <SendContext.Provider value={props.onSend}>
+        <WhatsappOpenedContext.Provider value={props.onWhatsappOpened ?? noop}>
+          {props.children}
+        </WhatsappOpenedContext.Provider>
+      </SendContext.Provider>
     </AssistantRuntimeProvider>
   );
 }

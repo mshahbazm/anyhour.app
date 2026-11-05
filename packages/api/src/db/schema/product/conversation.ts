@@ -76,6 +76,10 @@ export const conversation = pgTable(
     handoffSummary: jsonb('handoff_summary').$type<iHandoffSummary>(),
     // The AI's suggested reply for the member, owner-facing only.
     handoffDraft: text('handoff_draft'),
+    // The WhatsApp question (docs/whatsappQuestion.md): when the visitor
+    // first asked for WhatsApp, and first opened the WhatsApp button.
+    whatsappAskedAt: timestamp('whatsapp_asked_at'),
+    whatsappOpenedAt: timestamp('whatsapp_opened_at'),
     previewUserId: text('preview_user_id').references(() => user.id, {
       onDelete: 'cascade',
     }),
