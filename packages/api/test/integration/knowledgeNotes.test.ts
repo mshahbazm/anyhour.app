@@ -90,7 +90,7 @@ test('notes are live immediately, ask before overriding the website, and follow 
     PORT: String(server.port),
     BETTER_AUTH_URL: origin,
     FRONT_END_URL: 'http://localhost:3000',
-    LLM_KEY: 'fixture-key',
+    OPENAI_API_KEY: 'fixture-key',
     OPENAI_BASE_URL: `http://127.0.0.1:${fixture.port}/v1`,
   })
   const { app } = await import('../../src/app')

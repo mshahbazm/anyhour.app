@@ -3,7 +3,9 @@ import assert from 'node:assert/strict'
 import { test } from 'bun:test'
 import { eq } from 'drizzle-orm'
 import { knowledgeFormatVersion } from '../../src/services/knowledge/cleanup/formatBlocks'
-import { jevModel } from '../../src/services/knowledge/cleanup/jevRequests'
+import { decisionTasks } from '../../src/config/models.config'
+
+const jevModel = decisionTasks.blockCleanup.models.typesafe
 import type { iStagedPage } from '../../src/services/knowledge/staging'
 import { structuredResponse } from '../fixtures/openAiResponses'
 
@@ -86,12 +88,13 @@ test('cleanup and profile accounting resume saved provider work and deduplicate 
   Object.assign(process.env, {
     NODE_ENV: 'test',
     FRONT_END_URL: 'http://localhost:3000',
-    LLM_KEY: 'fixture',
+    OPENAI_API_KEY: 'fixture',
     OPENAI_BASE_URL: `${origin}/v1`,
     R2_ENDPOINT: origin,
     R2_BUCKET: 'stage',
     R2_ACCESS_KEY_ID: 'fixture',
     R2_SECRET_ACCESS_KEY: 'fixture',
+    DECISION_PROVIDER: 'typesafe',
     TYPESAFE_API_KEY: 'fixture',
     TYPESAFE_API_URL: `${origin}/jev`,
   })
@@ -236,16 +239,17 @@ test('cleanup and profile accounting resume saved provider work and deduplicate 
     // lost must be harmless: the stored provider response supplies the same ID.
     await usage(
       'cleanup',
-      cleanupUsage.inputTokens,
-      cleanupUsage.outputTokens,
+      {
+        provider: 'typesafe',
+        model: jevModel,
+        inputTokens: cleanupUsage.inputTokens,
+        cachedInputTokens: 0,
+        outputTokens: cleanupUsage.outputTokens,
+        costUsd: '0',
+      },
       cleanupUsage.id,
     )
-    await usage(
-      'pageProfile',
-      profileUsage.inputTokens,
-      profileUsage.outputTokens,
-      profileUsage.id,
-    )
+    await usage('pageProfile', profileUsage, profileUsage.id)
     const events = await db
       .select()
       .from(aiUsageEvent)

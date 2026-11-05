@@ -5,7 +5,7 @@ import { indexRunItem, knowledgeSource } from '../../db/schema'
 import { enqueuePreparePage } from '../queue/boss'
 import { extractPageBlocks } from './cleanup/extractBlocks'
 import { knowledgeFormatVersion } from './cleanup/formatBlocks'
-import { JevDeferred } from './cleanup/classifyBlocks'
+import { DecisionDeferred } from '../ai/decisions'
 import { createPageProfile } from './cleanup/pageProfile'
 import { PageUnavailableError } from './pageFailure'
 import { PageBlockedError } from './pageLoaders'
@@ -163,8 +163,8 @@ export async function preparePage(runId: string, sourceId: string) {
           page.cleanup = cleanup
           await writeStagedPage(key, page)
         },
-        async (input, output, _attempt, eventId) =>
-          usage('cleanup', input, output, eventId),
+        async (cleanupUsage, _attempt, eventId) =>
+          usage('cleanup', cleanupUsage, eventId),
       )
       page = {
         ...page,
@@ -188,12 +188,7 @@ export async function preparePage(runId: string, sourceId: string) {
     }
     if (page.pendingProfileUsage) {
       const pending = page.pendingProfileUsage
-      await usage(
-        'pageProfile',
-        pending.inputTokens,
-        pending.outputTokens,
-        pending.id,
-      )
+      await usage('pageProfile', pending, pending.id)
       delete page.pendingProfileUsage
       await writeStagedPage(key, page)
     }
@@ -221,7 +216,7 @@ export async function preparePage(runId: string, sourceId: string) {
       await failIndexItem(runId, sourceId, error, claim.attemptCount)
       return
     }
-    if (error instanceof JevDeferred) {
+    if (error instanceof DecisionDeferred) {
       const [deferred] = await deferPageAttempt(
         runId,
         sourceId,

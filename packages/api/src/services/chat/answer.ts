@@ -1,12 +1,12 @@
 import {
-  agentModel,
   agentModels,
   costUsd,
   languageModels,
 } from '../../config/models.config'
+import { agentModel } from '../ai/llm'
 import { buildVisitorPrompt } from './visitorPrompt'
 import { getBusinessProfile } from '../workspace/businessProfile'
-import { Agent, run, setDefaultOpenAIKey, tool } from '@openai/agents'
+import { Agent, run, tool } from '@openai/agents'
 import type { AgentInputItem } from '@openai/agents'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
@@ -49,10 +49,8 @@ export async function createAnswerStream(
     .limit(1)
   if (!record)
     throw new ApiError(404, 'assistant_missing', 'Assistant not found')
-  const apiKey = env.LLM_KEY ?? env.OPENAI_API_KEY
-  if (!apiKey)
-    throw new ApiError(503, 'ai_unconfigured', 'AI service is not configured')
-  setDefaultOpenAIKey(apiKey)
+  // Fails here, before anything streams, when the AI has no key.
+  const model = agentModel('visitorChat')
   const abort = new AbortController()
   const evidence = createCitationSelection()
   const searchTool = tool({
@@ -193,7 +191,7 @@ export async function createAnswerStream(
   )
   const agent = new Agent({
     name: record.name,
-    ...agentModel('visitorChat'),
+    ...model,
     instructions: buildVisitorPrompt({
       botName: record.name,
       job: record.job,
@@ -318,15 +316,11 @@ export async function createAnswerStream(
             assistantId,
             conversationId,
             kind: 'chat',
-            provider: 'openai',
+            provider: env.LLM_PROVIDER,
             model: languageModels[agentModels.visitorChat.model].id,
             inputTokens: usage.inputTokens,
             outputTokens: usage.outputTokens,
-            costUsd: costUsd(
-              agentModels.visitorChat.model,
-              usage.inputTokens,
-              usage.outputTokens,
-            ),
+            costUsd: costUsd(agentModels.visitorChat.model, usage),
           })
         })
         emit('done', {

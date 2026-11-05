@@ -1,7 +1,7 @@
 import { expect, mock, test } from 'bun:test'
 
 let calls = 0
-mock.module('../../src/services/ai/openAi', () => ({
+mock.module('../../src/services/ai/providers/openAiClient', () => ({
   getOpenAi: () => ({
     embeddings: {
       create: async ({ input }: { input: string[] }) => {
@@ -45,7 +45,7 @@ test('records each completed provider batch even if a later batch fails', async 
         },
       },
     ),
-  ).rejects.toThrow('second batch unavailable')
+  ).rejects.toThrow('The AI service is unavailable')
   expect(recorded).toEqual([123])
 })
 
@@ -76,7 +76,7 @@ test('a retry reuses successful earlier batches without repeating usage', async 
   }
   const input = Array.from({ length: 129 }, (_, index) => `paragraph ${index}`)
   await expect(embedTexts(input, options)).rejects.toThrow(
-    'second batch unavailable',
+    'The AI service is unavailable',
   )
   const resumed = await embedTexts(input, options)
   expect(resumed.vectors).toHaveLength(129)
@@ -97,7 +97,7 @@ test('shared failure and publication failure preserve earlier content/profile ba
   }
   await embedTexts(['content', 'profile'], options)
   await expect(embedTexts(['shared'], options)).rejects.toThrow(
-    'second batch unavailable',
+    'The AI service is unavailable',
   )
   await embedTexts(['content', 'profile'], options)
   await embedTexts(['shared'], options)

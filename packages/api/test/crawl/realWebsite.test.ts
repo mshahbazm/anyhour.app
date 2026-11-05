@@ -3,8 +3,6 @@ import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { test } from 'bun:test'
 import { eq, inArray } from 'drizzle-orm'
-import { createWithOwnWebsite } from '../fixtures/ownWebsite'
-import { orgOf } from '../fixtures/knowledgeOwner'
 
 // A real website read the way a customer's is: the real worker, Cloudflare's
 // browser, Jev and embeddings, with the keys in .env. Only the page limit is
@@ -40,7 +38,7 @@ test(
     const { app } = await import('../../src/app')
     handle = (request) => app.fetch(request)
     const { db } = await import('../../src/db')
-    const { aiUsageEvent, assistant, indexRun, knowledgeSource } =
+    const { aiUsageEvent, indexRun, knowledgeSource } =
       await import('../../src/db/schema')
     const { searchKnowledge } =
       await import('../../src/services/knowledge/retrieval')
@@ -66,25 +64,42 @@ test(
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       })
 
+    // The workspace's sources and their runs and usage, so each read starts
+    // from nothing and leaves nothing behind. The workspace's AI stays.
+    const clearSources = async () => {
+      const ids = (
+        await db
+          .select({ id: knowledgeSource.id })
+          .from(knowledgeSource)
+          .where(eq(knowledgeSource.organizationId, credentials.organizationId))
+      ).map(({ id }) => id)
+      if (!ids.length) return
+      await db.delete(indexRun).where(inArray(indexRun.targetSourceId, ids))
+      await db.delete(aiUsageEvent).where(inArray(aiUsageEvent.sourceId, ids))
+      await db.delete(knowledgeSource).where(inArray(knowledgeSource.id, ids))
+    }
+    await clearSources()
+
     // The worker customers' reads run in.
     const worker = spawn(process.execPath, ['src/worker.ts'], {
       cwd,
       env: process.env,
       stdio: ['ignore', 'ignore', 'inherit'],
     })
-    let assistantId: string | undefined
     try {
-      const created = await createWithOwnWebsite(
-        (path, body) => call(`/assistants${path}`, 'POST', body),
-        { name: 'Crawl test', websiteUrl: site },
-      )
+      // One AI per business: it reads the workspace's website.
+      const ai = await call('/assistant')
+      assert.equal(ai.status, 200, await ai.clone().text())
+      const assistantId = ((await ai.json()) as { id: string }).id
+      const created = await call('/business/sources', 'POST', {
+        kind: 'website',
+        url: site,
+      })
       assert.equal(created.status, 201, await created.clone().text())
       const made = (await created.json()) as {
-        assistant: { id: string }
         source: { id: string }
         indexRun: { id: string }
       }
-      assistantId = made.assistant.id
 
       let run: typeof indexRun.$inferSelect | undefined
       for (let i = 0; i < 220; i++) {
@@ -104,6 +119,41 @@ test(
       assert.equal(run.crawlProvider, 'browser')
       assert(run.discoveredCount <= pageLimit, `${run.discoveredCount} pages`)
       assert(run.indexedCount >= 3, `${run.indexedCount} pages learned`)
+      // What reading cost, per page and provider, and how long it took.
+      const pages = await db
+        .select({
+          id: knowledgeSource.id,
+          url: knowledgeSource.canonicalUrl,
+          cleanupStatus: knowledgeSource.cleanupStatus,
+        })
+        .from(knowledgeSource)
+        .where(eq(knowledgeSource.organizationId, credentials.organizationId))
+      const usage = await db
+        .select()
+        .from(aiUsageEvent)
+        .where(
+          inArray(
+            aiUsageEvent.sourceId,
+            pages.map(({ id }) => id),
+          ),
+        )
+      for (const page of pages) {
+        const events = usage.filter((event) => event.sourceId === page.id)
+        if (!events.length) continue
+        console.log(
+          `${page.url ?? page.id} cleanup ${page.cleanupStatus ?? '-'}: ` +
+            events
+              .map(
+                (event) =>
+                  `${event.kind} ${event.provider}/${event.model} ${event.inputTokens} in (${event.cachedInputTokens} cached) $${Number(event.costUsd).toFixed(6)}`,
+              )
+              .join('; '),
+        )
+      }
+      if (run.startedAt && run.completedAt)
+        console.log(
+          `Read in ${((run.completedAt.getTime() - run.startedAt.getTime()) / 1000).toFixed(1)}s`,
+        )
 
       const [website] = await db
         .select()
@@ -128,23 +178,7 @@ test(
       )
     } finally {
       worker.kill()
-      if (assistantId) {
-        const sources = await db
-          .select({ id: knowledgeSource.id })
-          .from(knowledgeSource)
-          .where(eq(knowledgeSource.organizationId, orgOf(assistantId)))
-        const ids = sources.map(({ id }) => id)
-        if (ids.length) {
-          await db.delete(indexRun).where(inArray(indexRun.targetSourceId, ids))
-          await db
-            .delete(aiUsageEvent)
-            .where(eq(aiUsageEvent.assistantId, assistantId))
-          await db
-            .delete(knowledgeSource)
-            .where(inArray(knowledgeSource.id, ids))
-        }
-        await db.delete(assistant).where(eq(assistant.id, assistantId))
-      }
+      await clearSources()
       server.stop()
     }
   },

@@ -141,7 +141,6 @@ export function startRolesProviders() {
   return {
     server,
     env: {
-      LLM_KEY: 'fixture-key',
       OPENAI_API_KEY: 'fixture-key',
       OPENAI_BASE_URL: `${origin}/v1`,
       R2_ENDPOINT: origin,
@@ -149,6 +148,7 @@ export function startRolesProviders() {
       R2_ACCESS_KEY_ID: 'fixture-key',
       R2_SECRET_ACCESS_KEY: 'fixture-secret',
       TYPESAFE_API_KEY: 'fixture-key',
+      DECISION_PROVIDER: 'typesafe',
       TYPESAFE_API_URL: `${origin}/jev`,
     },
   }

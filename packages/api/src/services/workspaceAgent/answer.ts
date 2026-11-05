@@ -1,13 +1,10 @@
-import { Agent, Runner, setDefaultOpenAIKey } from '@openai/agents'
+import { Agent, Runner } from '@openai/agents'
 import type { AgentInputItem } from '@openai/agents'
 import { and, eq } from 'drizzle-orm'
 import { db } from '../../db'
 import { workspaceAction, workspaceMessage } from '../../db/schema'
-import { env } from '../../env'
 import { workspaceAgentConfig } from '../../config/workspaceAgent.config'
-import { agentModel } from '../../config/models.config'
-
-const helper = agentModel('ownerAssistant')
+import { agentModel } from '../ai/llm'
 import { ApiError } from '../http/apiError'
 import {
   applyConfirmedAction,
@@ -26,14 +23,17 @@ import type {
 import { startHeartbeat } from '../http/eventStream'
 
 export function requireWorkspaceModel() {
-  const key = env.LLM_KEY ?? env.OPENAI_API_KEY
-  if (!key)
-    throw new ApiError(
-      503,
-      'ai_unconfigured',
-      'The helper is not configured yet',
-    )
-  setDefaultOpenAIKey(key)
+  try {
+    return agentModel('ownerAssistant')
+  } catch (error) {
+    if (error instanceof ApiError && error.code === 'ai_unconfigured')
+      throw new ApiError(
+        503,
+        'ai_unconfigured',
+        'The helper is not configured yet',
+      )
+    throw error
+  }
 }
 
 export function workspaceAnswer(
@@ -151,6 +151,7 @@ export function workspaceAnswer(
             role: 'system',
             content: `Knowledge changed outside this chat since these facts were saved here (the owner used the Your business page). This replaces what was said earlier in the chat; mention it only when relevant:\n${changes.join('\n')}`,
           })
+        const helper = requireWorkspaceModel()
         const agent = new Agent({
           name: 'Anyhour helper',
           model: helper.model,

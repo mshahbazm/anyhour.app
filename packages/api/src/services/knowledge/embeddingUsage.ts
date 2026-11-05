@@ -1,6 +1,7 @@
 import { db } from '../../db'
 import { aiUsageEvent } from '../../db/schema'
 import { embeddingModel } from '../../config/models.config'
+import { env } from '../../env'
 import type { iKnowledgeOwner } from './owner'
 import { sourceUsageContext } from './sourceUsageContext'
 
@@ -20,7 +21,7 @@ export function embeddingUsageRecorder(context: iEmbeddingUsageContext) {
     await database.insert(aiUsageEvent).values({
       ...context,
       kind: 'embedding',
-      provider: 'openai',
+      provider: env.LLM_PROVIDER,
       model: embeddingModel.id,
       inputTokens: tokens,
       costUsd: (

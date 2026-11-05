@@ -52,7 +52,7 @@ test('embedding checkpoints survive later provider and publication failures', as
       FRONT_END_URL: 'http://localhost:3000',
       PORT: '3001',
       BETTER_AUTH_URL: 'http://localhost:3001',
-      LLM_KEY: 'fixture-key',
+      OPENAI_API_KEY: 'fixture-key',
       OPENAI_BASE_URL: `http://127.0.0.1:${provider.port}/v1`,
     })
     const seed = spawn(

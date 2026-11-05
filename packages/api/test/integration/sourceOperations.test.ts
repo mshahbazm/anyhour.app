@@ -42,7 +42,7 @@ test('source operations preserve pinned evidence, recover upload cleanup, and se
     PORT: String(server.port),
     BETTER_AUTH_URL: origin,
     FRONT_END_URL: 'http://localhost:3000',
-    LLM_KEY: 'fixture-key',
+    OPENAI_API_KEY: 'fixture-key',
     R2_ENDPOINT: `http://127.0.0.1:${fixture.port}`,
     R2_BUCKET: 'uploads',
     R2_ACCESS_KEY_ID: 'fixture',

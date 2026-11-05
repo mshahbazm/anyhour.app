@@ -13,7 +13,7 @@ let lastInput: {
   knownFacts: string[]
   deals: Array<{ title: string }>
 } | null = null
-mock.module('../../src/services/ai/openAi', () => ({
+mock.module('../../src/services/ai/providers/openAiClient', () => ({
   getOpenAi: () => ({
     responses: {
       parse: async ({ input }: { input: string }) => {

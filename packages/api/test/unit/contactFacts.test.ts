@@ -5,7 +5,7 @@ import { contactMemory } from '../../src/config/contacts.config'
 let calls = 0
 let proposal: string[] = []
 let lastRequest: { instructions: string; input: string } | null = null
-mock.module('../../src/services/ai/openAi', () => ({
+mock.module('../../src/services/ai/providers/openAiClient', () => ({
   getOpenAi: () => ({
     responses: {
       parse: async (request: { instructions: string; input: string }) => {

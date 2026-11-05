@@ -27,7 +27,7 @@ mock.module('resend', () => ({
 // One-shot model call: the handoff's suggested reply. Embeddings are one
 // fixed vector.
 const suggestedReply = 'Sorry your order arrived broken. I’ll sort it out now.'
-mock.module('../../src/services/ai/openAi', () => ({
+mock.module('../../src/services/ai/providers/openAiClient', () => ({
   getOpenAi: () => ({
     embeddings: {
       create: async ({ input }: { input: string[] }) => ({
@@ -62,7 +62,7 @@ test('handoff, staff replies and release over HTTP', async () => {
   )
     throw new Error('Requires local PostgreSQL')
   process.env.NODE_ENV = 'test'
-  process.env.LLM_KEY = 'fixture-key'
+  process.env.OPENAI_API_KEY = 'fixture-key'
   let handle: (request: Request) => Response | Promise<Response> = () =>
     new Response('Starting', { status: 503 })
   const server = Bun.serve({

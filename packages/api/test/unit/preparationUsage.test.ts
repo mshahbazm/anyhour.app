@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'bun:test'
 import { classifyPageBlocks } from '../../src/services/knowledge/cleanup/classifyBlocks'
-import {
-  jevModel,
-  type makeJevRequest,
-} from '../../src/services/knowledge/cleanup/jevRequests'
+import { httpFailure } from '../../src/services/ai/providers/decisions/types'
+import type { tCleanupRequest } from '../../src/services/knowledge/cleanup/cleanupRequests'
 import type {
   iCleanupCheckpoint,
   iPageBlock,
@@ -32,21 +30,21 @@ test('nested cleanup splits resume saved child decisions and the same pending us
   const save = async (state: iCleanupCheckpoint) => {
     saved = structuredClone(state)
   }
-  const send = async (request: ReturnType<typeof makeJevRequest>) => {
-    const target = Object.keys(request.questions)[0]
+  const send = async (request: tCleanupRequest) => {
+    const target = request.questions[0].name
     // Two successive context rejections force nested subdivision of one
     // fragment. Successful grandchildren must survive a failed usage callback.
     if (!/s\d+s\d+$/u.test(target))
-      return new Response('Input exceeds maximum context limit', {
-        status: 422,
-      })
+      throw await httpFailure(
+        new Response('Input exceeds maximum context limit', { status: 422 }),
+      )
     paidTargets.set(target, (paidTargets.get(target) ?? 0) + 1)
-    return Response.json({
-      model: jevModel,
-      answers: {
-        [target]: {
-          type: 'choice',
-          choice: 'knowledge',
+    return {
+      answers: [
+        {
+          kind: 'choice' as const,
+          name: target,
+          choice: 'knowledge' as const,
           confidence: 0.99,
           probabilities: {
             knowledge: 0.97,
@@ -55,16 +53,18 @@ test('nested cleanup splits resume saved child decisions and the same pending us
             uncertain: 0.01,
           },
         },
+      ],
+      usage: {
+        provider: 'openai' as const,
+        model: 'gpt-6-luna',
+        inputTokens: 10,
+        cachedInputTokens: 0,
+        outputTokens: 2,
+        costUsd: '0.000001',
       },
-      usage: { input_tokens: 10, output_tokens: 2 },
-    })
+    }
   }
-  const usage = async (
-    _input: number,
-    _output: number,
-    _attempt: number,
-    eventId: string,
-  ) => {
+  const usage = async (_usage: unknown, _attempt: number, eventId: string) => {
     usageCalls.push(eventId)
     accounted.add(eventId)
     if (failAccounting) {

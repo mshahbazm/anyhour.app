@@ -7,9 +7,9 @@ import {
 } from '../../src/services/knowledge/cleanup/formatBlocks'
 import { groupRepeatedBlocks } from '../../src/services/knowledge/cleanup/repeatedBlocks'
 import {
-  makeJevRequest,
-  planJevRequests,
-} from '../../src/services/knowledge/cleanup/jevRequests'
+  makeCleanupRequest,
+  planCleanupRequests,
+} from '../../src/services/knowledge/cleanup/cleanupRequests'
 import { chunkText } from '../../src/services/knowledge/chunk'
 import { inspectHtml } from '../../src/services/knowledge/web'
 
@@ -107,15 +107,15 @@ describe('action link evidence', () => {
     expect(isCurrentContentHash('old-text-only-hash')).toBe(false)
   })
 
-  test('Jev sees original text and links without duplicate formatting metadata', () => {
+  test('the decision provider sees original text and links without duplicate formatting metadata', () => {
     const blocks = extract('<p>Please <a href="/book">book now</a>.</p>')
-    const { jobs } = planJevRequests(page, blocks)
-    const request = makeJevRequest(page, jobs[0])
-    expect(request.state.blocks[0].text).toBe('Please book now .')
-    expect(request.state.blocks[0].links[0].url).toBe(
+    const { jobs } = planCleanupRequests(page, blocks)
+    const request = makeCleanupRequest(page, jobs[0])
+    expect(request.input.blocks[0].text).toBe('Please book now .')
+    expect(request.input.blocks[0].links[0].url).toBe(
       'https://example.com/book',
     )
-    expect(request.state.blocks[0]).not.toHaveProperty('inlineParts')
+    expect(request.input.blocks[0]).not.toHaveProperty('inlineParts')
   })
 })
 

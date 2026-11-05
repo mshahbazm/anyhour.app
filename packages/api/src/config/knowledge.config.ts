@@ -19,7 +19,4 @@ export const knowledgeConfig = {
   queueRetryDelaySeconds: 10,
   missingPageGraceMs: 3 * 24 * 60 * 60_000,
   gonePageGraceMs: 10 * 60_000,
-  preparationPricing: {
-    cleanup: { inputCostPerMillion: 0.042, outputCostPerMillion: 0 },
-  },
 } as const

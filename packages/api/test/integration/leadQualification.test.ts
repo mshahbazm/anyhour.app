@@ -12,7 +12,7 @@ let lastInput: {
   business: { about: string | null; idealCustomerProfile: string | null }
   messages: Array<{ role: string; text: string }>
 } | null = null
-mock.module('../../src/services/ai/openAi', () => ({
+mock.module('../../src/services/ai/providers/openAiClient', () => ({
   getOpenAi: () => ({
     responses: {
       parse: async ({ input }: { input: string }) => {

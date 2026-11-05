@@ -173,13 +173,14 @@ test('page and website scopes share durable ingestion without moving the refresh
     PORT: String(server.port),
     BETTER_AUTH_URL: apiOrigin,
     FRONT_END_URL: 'http://localhost:3000',
-    LLM_KEY: 'fixture-key',
+    OPENAI_API_KEY: 'fixture-key',
     OPENAI_BASE_URL: `${fixtureOrigin}/v1`,
     R2_ENDPOINT: fixtureOrigin,
     R2_BUCKET: 'stage',
     R2_ACCESS_KEY_ID: 'fixture',
     R2_SECRET_ACCESS_KEY: 'fixture',
     TYPESAFE_API_KEY: 'fixture',
+    DECISION_PROVIDER: 'typesafe',
     TYPESAFE_API_URL: `${fixtureOrigin}/jev`,
   })
   const { app } = await import('../../src/app')

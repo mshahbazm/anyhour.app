@@ -1,7 +1,8 @@
 // Which pages of a website would be read, without reading them: runs the same
 // plan a new website gets before its first read (services/knowledge/
 // scopePlan.ts) and prints it. Fetches only the sitemap, the home page and
-// the feed; saves nothing. One Jev call per site unless --no-ai.
+// the feed; saves nothing. One decision call per site (DECISION_PROVIDER)
+// unless --no-ai.
 //
 //   bun run scope:preview https://example.com [https://other.com …] [--no-ai]
 import { planScope } from '../src/services/knowledge/scopePlan'
@@ -30,8 +31,8 @@ for (const site of sites) {
         siteUrl,
         excludePaths: [],
         ...(useAi && {
-          onJevUsage: async (usage) => {
-            cost += usage.costUsd
+          onAiUsage: async (usage) => {
+            cost += Number(usage.costUsd)
           },
         }),
       }),
@@ -58,7 +59,7 @@ for (const site of sites) {
     )
     console.log(
       `Read ${all.length - skipped.length} of ${all.length} known pages, skip ${skipped.length}` +
-        (useAi ? ` · Jev $${cost.toFixed(5)}` : ' · no AI') +
+        (useAi ? ` · decisions $${cost.toFixed(5)}` : ' · no AI') +
         ` · ${((Date.now() - started) / 1000).toFixed(1)}s`,
     )
     console.log(

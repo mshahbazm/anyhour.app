@@ -4,7 +4,7 @@ import { z } from 'zod'
 // The fake model returns whatever `answer` holds and records what it read.
 let answer: unknown = { records: [], missing: [] }
 let lastRequest: { instructions: string; input: string } | null = null
-mock.module('../../src/services/ai/openAi', () => ({
+mock.module('../../src/services/ai/providers/openAiClient', () => ({
   getOpenAi: () => ({
     responses: {
       parse: async (request: { instructions: string; input: string }) => {

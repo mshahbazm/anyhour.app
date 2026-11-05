@@ -1,4 +1,3 @@
-import { imageModel } from '../../config/models.config'
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { and, eq } from 'drizzle-orm'
 import { db } from '../../db'
@@ -9,12 +8,10 @@ import {
   botPictureStyles,
 } from '../../config/botPicture.config'
 import type { tCreateBotPicture } from '../../schemas/assistant.schema'
-import type { ImageGenerateParamsNonStreaming } from 'openai/resources/images'
-import { getOpenAi } from '../ai/openAi'
 import { ApiError } from '../http/apiError'
 import { deleteStoredObject, getR2Storage } from '../knowledge/r2Storage'
 import { ownedAssistant } from '../auth/owned'
-import { generateObject } from '../ai/llm'
+import { generateImage, generateObject } from '../ai/llm'
 import { getBusinessProfile } from '../workspace/businessProfile'
 import type { iBusinessProfile } from '../workspace/businessProfile'
 import { z } from 'zod'
@@ -91,18 +88,19 @@ async function writePrompt(brief: iPictureBrief) {
   }
 }
 
-async function generate(body: ImageGenerateParamsNonStreaming) {
+async function generate(prompt: string) {
   try {
-    return await getOpenAi().images.generate(body, {
-      timeout: botPictureConfig.timeoutMs,
+    return await generateImage({
+      prompt,
+      size: botPictureConfig.size,
+      quality: botPictureConfig.quality,
+      format: botPictureConfig.format,
+      compression: botPictureConfig.compression,
+      timeoutMs: botPictureConfig.timeoutMs,
     })
   } catch (error) {
-    // Provider messages can echo the prompt; only the status is used.
-    const status =
-      error && typeof error === 'object' && 'status' in error
-        ? error.status
-        : undefined
-    if (status === 400)
+    // Provider messages can echo the prompt; only the classification is used.
+    if (error instanceof ApiError && error.code === 'ai_rejected')
       throw new ApiError(
         422,
         'picture_rejected',
@@ -131,16 +129,7 @@ export async function createBotPicture(
     business: await getBusinessProfile(organizationId),
     request,
   })
-  const response = await generate({
-    model: imageModel,
-    prompt,
-    size: botPictureConfig.size,
-    quality: botPictureConfig.quality,
-    output_format: botPictureConfig.format,
-    output_compression: botPictureConfig.compression,
-    n: 1,
-  })
-  const image = response.data?.[0]?.b64_json
+  const image = (await generate(prompt)).base64
   if (!image)
     throw new ApiError(
       503,

@@ -1,4 +1,4 @@
-import { getOpenAi } from '../ai/openAi'
+import { embed } from '../ai/llm'
 import { embeddingModel } from '../../config/models.config'
 import { createHash } from 'node:crypto'
 
@@ -63,38 +63,17 @@ export async function embedTexts(texts: string[], options: iEmbeddingOptions) {
       start += batch.length
       continue
     }
-    const response = await getOpenAi().embeddings.create(
-      {
-        model: embeddingModel.id,
-        dimensions: embeddingModel.dimensions,
-        input: batch,
-      },
-      { signal, timeout: 45_000, maxRetries: 2 },
-    )
-    const ordered = [...response.data].sort((a, b) => a.index - b.index)
-    if (
-      ordered.length !== batch.length ||
-      ordered.some(
-        (item, index) =>
-          item.index !== index ||
-          item.embedding.length !== embeddingModel.dimensions ||
-          !item.embedding.every(Number.isFinite) ||
-          !item.embedding.some((value) => value !== 0),
-      )
-    ) {
-      await options.onUsage(response.usage.total_tokens)
+    const response = await embed(batch, { signal })
+    if (!validVectors(response.vectors, batch.length)) {
+      await options.onUsage(response.tokens)
       throw new Error('Embedding provider returned invalid vectors')
     }
-    const batchVectors = ordered.map((item) => item.embedding)
+    const batchVectors = response.vectors
     if (options.checkpoint)
-      await options.checkpoint.write(
-        inputHash,
-        batchVectors,
-        response.usage.total_tokens,
-      )
-    else await options.onUsage(response.usage.total_tokens)
+      await options.checkpoint.write(inputHash, batchVectors, response.tokens)
+    else await options.onUsage(response.tokens)
     vectors.push(...batchVectors)
-    tokens += response.usage.total_tokens
+    tokens += response.tokens
     start += batch.length
   }
   return { vectors, tokens }

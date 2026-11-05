@@ -48,7 +48,7 @@ test('staging cleanup protects active references and durably retires terminal-ru
     FRONT_END_URL: 'http://localhost:3000',
     PORT: '3001',
     BETTER_AUTH_URL: 'http://localhost:3001',
-    LLM_KEY: 'fixture',
+    OPENAI_API_KEY: 'fixture',
     R2_ENDPOINT: `http://127.0.0.1:${fixture.port}`,
     R2_BUCKET: 'stage',
     R2_ACCESS_KEY_ID: 'fixture',

@@ -7,7 +7,7 @@ import { ApiError } from '../../src/services/http/apiError'
 let calls = 0
 let failWith: unknown = null
 let lastInput: Record<string, unknown> | null = null
-mock.module('../../src/services/ai/openAi', () => ({
+mock.module('../../src/services/ai/providers/openAiClient', () => ({
   getOpenAi: () => ({
     responses: {
       parse: async ({ input }: { input: string }) => {

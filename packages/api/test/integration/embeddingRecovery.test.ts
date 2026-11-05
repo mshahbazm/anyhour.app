@@ -57,7 +57,7 @@ test('embedding delivery preserves newer results and rechecks skipped profile ve
       FRONT_END_URL: 'http://localhost:3000',
       PORT: '3001',
       BETTER_AUTH_URL: 'http://localhost:3001',
-      LLM_KEY: 'fixture-key',
+      OPENAI_API_KEY: 'fixture-key',
       OPENAI_BASE_URL: `${origin}/v1`,
       R2_ENDPOINT: origin,
       R2_BUCKET: 'stage',

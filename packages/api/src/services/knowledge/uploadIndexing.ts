@@ -37,7 +37,7 @@ async function profileDocument(
   })
   const result = await createPageProfile(title, blocks)
   const record = await sourcePreparationUsage(ownerOf(source), source.id)
-  await record('pageProfile', result.inputTokens, result.outputTokens)
+  await record('pageProfile', result)
   return result.profile
 }
 

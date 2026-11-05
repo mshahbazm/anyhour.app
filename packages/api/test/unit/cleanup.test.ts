@@ -3,19 +3,26 @@ import { chunkText } from '../../src/services/knowledge/chunk'
 import { getEncoding } from 'js-tiktoken'
 import {
   classifyPageBlocks,
-  JevDeferred,
   shouldDiscard,
 } from '../../src/services/knowledge/cleanup/classifyBlocks'
+import {
+  checkAnswer,
+  DecisionDeferred,
+  DecisionError,
+  type iDecisionUsage,
+} from '../../src/services/ai/decisions'
+import { httpFailure } from '../../src/services/ai/providers/decisions/types'
 import { extractPageBlocks } from '../../src/services/knowledge/cleanup/extractBlocks'
 import { pageExcerpt } from '../../src/services/knowledge/cleanup/pageProfile'
 import {
   cleanupLimits,
-  makeJevRequest,
-  planJevRequests,
+  makeCleanupRequest,
+  planCleanupRequests,
   requestFits,
-  shrinkJevJob,
+  shrinkCleanupJob,
   splitBlockText,
-} from '../../src/services/knowledge/cleanup/jevRequests'
+  type tCleanupRequest,
+} from '../../src/services/knowledge/cleanup/cleanupRequests'
 import {
   groupRepeatedBlocks,
   sharedBlockKey,
@@ -41,7 +48,7 @@ const block = (
 })
 const parse = (html: string) => extractPageBlocks({ ...page, html }).blocks
 const answer = (choice: tBlockKind, confidence = 0.99) => ({
-  type: 'choice',
+  kind: 'choice' as const,
   choice,
   confidence,
   probabilities: {
@@ -51,18 +58,29 @@ const answer = (choice: tBlockKind, confidence = 0.99) => ({
     uncertain: choice === 'uncertain' ? 0.97 : 0.01,
   },
 })
-type tRequest = ReturnType<typeof makeJevRequest>
-const responseFor = (
+type tRequest = tCleanupRequest
+type tFakeAnswer =
+  | ReturnType<typeof answer>
+  | { kind: 'refusal'; reason: 'declined' | 'invalid' }
+const usage = (inputTokens: number, outputTokens: number): iDecisionUsage => ({
+  provider: 'openai',
+  model: 'gpt-6-luna',
+  inputTokens,
+  cachedInputTokens: 0,
+  outputTokens,
+  costUsd: '0',
+})
+// Answers as decide() returns them: in question order, checked like the
+// base layer checks every provider's answers.
+const responseFor = async (
   request: tRequest,
-  choose: (id: string) => unknown = () => answer('knowledge'),
-) =>
-  Response.json({
-    model: 'jev-1.13.0',
-    answers: Object.fromEntries(
-      Object.keys(request.questions).map((id) => [id, choose(id)]),
-    ),
-    usage: { input_tokens: 120, output_tokens: 12 },
-  })
+  choose: (id: string) => tFakeAnswer = () => answer('knowledge'),
+) => ({
+  answers: request.questions.map((question) =>
+    checkAnswer({ ...choose(question.name), name: question.name }),
+  ) as never,
+  usage: usage(120, 12),
+})
 const checkpoint = (
   extra: Partial<iCleanupCheckpoint> = {},
 ): iCleanupCheckpoint => ({
@@ -243,7 +261,7 @@ describe('repeated site content', () => {
   })
 })
 
-describe('Jev evidence and request budgets', () => {
+describe('Cleanup evidence and request budgets', () => {
   test('profile excerpts preserve decimal prices and abbreviated times', () => {
     const excerpt = pageExcerpt('Rooms', [
       block(
@@ -294,7 +312,7 @@ describe('Jev evidence and request budgets', () => {
       'Hotel rooms cost £120 including breakfast, and children aged 8 can join the tour. '.repeat(
         6,
       )
-    const { jobs, fragments } = planJevRequests(page, [
+    const { jobs, fragments } = planCleanupRequests(page, [
       block('long', text),
       block('price', '£199'),
     ])
@@ -310,8 +328,8 @@ describe('Jev evidence and request budgets', () => {
     const blocks = Array.from({ length: 8 }, (_, i) =>
       block(`b${i}`, `Useful fact ${i}.`),
     )
-    const budgets = { state: 24_000, request: 4_000 }
-    const { jobs, fragments } = planJevRequests(page, blocks, budgets)
+    const budgets = { inputBytes: 24_000, requestBytes: 4_000 }
+    const { jobs, fragments } = planCleanupRequests(page, blocks, budgets)
     expect(jobs.length).toBeGreaterThan(1)
     expect(
       jobs.every(
@@ -324,9 +342,12 @@ describe('Jev evidence and request budgets', () => {
     expect(jobs.every((job) => requestFits(page, job, budgets))).toBe(true)
     for (const job of jobs)
       for (const id of job.targets) {
-        const request = makeJevRequest(page, job)
-        expect(request.questions[id]?.instructions).toContain(
-          `state.blocks[${job.context.findIndex((item) => item.id === id)}]`,
+        const request = makeCleanupRequest(page, job)
+        expect(
+          request.questions.find((question) => question.name === id)
+            ?.instructions,
+        ).toContain(
+          `blocks[${job.context.findIndex((item) => item.id === id)}]`,
         )
       }
   })
@@ -339,8 +360,8 @@ describe('Jev evidence and request budgets', () => {
         { heading: `Heading ${i}` },
       ),
     )
-    const budgets = { state: 4_000, request: 10_000 }
-    const { jobs, fragments } = planJevRequests(page, blocks, budgets)
+    const budgets = { inputBytes: 4_000, requestBytes: 10_000 }
+    const { jobs, fragments } = planCleanupRequests(page, blocks, budgets)
     expect(jobs.length).toBeGreaterThan(1)
     expect(
       jobs.every((job) => !job.fullPage && requestFits(page, job, budgets)),
@@ -365,16 +386,40 @@ describe('Jev evidence and request budgets', () => {
         (part) => Buffer.byteLength(part) <= 129 && !part.includes('\uFFFD'),
       ),
     ).toBe(true)
-    const { fragments, jobs } = planJevRequests(
+    const { fragments, jobs } = planCleanupRequests(
       page,
       [block('unicode', text)],
-      { state: 4_000, request: 10_000 },
+      { inputBytes: 4_000, requestBytes: 10_000 },
     )
     expect(fragments.map((item) => item.text).join('')).toBe(text)
     expect(jobs.flatMap((job) => job.targets)).toEqual(
       fragments.map((item) => item.id),
     )
     expect(fragments.at(-1)?.text).toEndWith('END_OF_PAGE  ')
+  })
+
+  test('criteria go once in the input or with every question, never both', () => {
+    const { jobs } = planCleanupRequests(page, [
+      block('a', 'Open 9–5'),
+      block('b', 'Book now'),
+    ])
+    const shared = makeCleanupRequest(page, jobs[0], true)
+    expect(shared.input).toHaveProperty('criteria')
+    expect(shared.questions.map((q) => q.instructions)).toEqual([
+      'Classify `blocks[0]` using the instructions and criteria above.',
+      'Classify `blocks[1]` using the instructions and criteria above.',
+    ])
+    expect(
+      shared.questions[0].choices.every((c) => c.description === c.value),
+    ).toBe(true)
+    const each = makeCleanupRequest(page, jobs[0], false)
+    expect(each.input).not.toHaveProperty('criteria')
+    expect(each.questions[0].instructions).toStartWith(
+      'Classify only the actual content of `blocks[0]` for an assistant',
+    )
+    expect(each.questions[0].choices[2].description).toContain(
+      'cookie consent controls',
+    )
   })
 
   test('context splitting has a strict depth limit and preserves Unicode text', () => {
@@ -385,16 +430,16 @@ describe('Jev evidence and request budgets', () => {
       fullPage: false,
       depth: 0,
     }
-    const children = shrinkJevJob(job)
+    const children = shrinkCleanupJob(job)
     expect(children.length).toBeGreaterThan(1)
     expect(
       children
         .flatMap((child) => child.context.map((item) => item.text))
         .join(''),
     ).toBe(target.text)
-    expect(shrinkJevJob({ ...job, depth: cleanupLimits.splitDepth })).toEqual(
-      [],
-    )
+    expect(
+      shrinkCleanupJob({ ...job, depth: cleanupLimits.splitDepth }),
+    ).toEqual([])
   })
 })
 
@@ -481,24 +526,25 @@ describe('conservative decisions and bounded recovery', () => {
     ]
     const result = await classifyPageBlocks(page, blocks, {
       save: ignoreSave,
-      send: async () =>
-        Response.json({
-          model: 'jev-1.13.0',
-          answers: {
-            bad_0: {
-              ...answer('noise'),
-              probabilities: {
-                knowledge: 0,
-                action: 0,
-                noise: 2,
-                uncertain: 0,
-              },
-            },
-            mismatch_0: { ...answer('knowledge'), choice: 'noise' },
-            good_0: answer('action'),
-          },
-          usage: { input_tokens: 12, output_tokens: 3 },
-        }),
+      // Bad totals and mismatched choices come back from the base layer as
+      // invalid; the last answer is missing.
+      send: async (request) => ({
+        answers: [
+          checkAnswer({
+            ...answer('noise'),
+            name: 'bad_0',
+            probabilities: { knowledge: 0, action: 0, noise: 2, uncertain: 0 },
+          }),
+          checkAnswer({
+            ...answer('knowledge'),
+            name: 'mismatch_0',
+            choice: 'noise',
+          }),
+          undefined,
+          checkAnswer({ ...answer('action'), name: request.questions[3].name }),
+        ] as never,
+        usage: usage(12, 3),
+      }),
     })
     expect(result.blocks).toEqual(blocks)
     expect(result.checkpoint.complete).toBe(false)
@@ -506,27 +552,15 @@ describe('conservative decisions and bounded recovery', () => {
     expect(result.checkpoint.decisions.good_0?.kind).toBe('action')
   })
 
-  test.each(['malformed JSON', 'wrong model', 'missing usage'])(
-    '%s retains source text',
+  test.each(['invalidResponse', 'authentication', 'rejected'] as const)(
+    'a provider %s failure retains source text without retrying',
     async (failure) => {
       const blocks = [block('fact', 'Hours: 9–5')]
       const result = await classifyPageBlocks(page, blocks, {
         save: ignoreSave,
-        send: async (request) =>
-          failure === 'malformed JSON'
-            ? new Response('{')
-            : Response.json({
-                model: failure === 'wrong model' ? 'unexpected' : 'jev-1.13.0',
-                answers: Object.fromEntries(
-                  Object.keys(request.questions).map((id) => [
-                    id,
-                    answer('noise'),
-                  ]),
-                ),
-                ...(failure === 'missing usage'
-                  ? {}
-                  : { usage: { input_tokens: 1, output_tokens: 1 } }),
-              }),
+        send: async () => {
+          throw new DecisionError(failure)
+        },
       })
       expect(result.blocks).toEqual(blocks)
       expect(result.checkpoint.complete).toBe(false)
@@ -572,7 +606,9 @@ describe('conservative decisions and bounded recovery', () => {
       sleep: noSleep,
       send: async () => {
         calls++
-        return new Response('Invalid request schema', { status: 422 })
+        throw await httpFailure(
+          new Response('Invalid request schema', { status: 422 }),
+        )
       },
     })
     expect(calls).toBe(1)
@@ -588,16 +624,20 @@ describe('conservative decisions and bounded recovery', () => {
       sleep: noSleep,
       send: async (request) => {
         requests.push(request)
-        return requests.length === 1
-          ? new Response('Input exceeds maximum context limit', { status: 422 })
-          : responseFor(request, (id) =>
-              answer(id.startsWith('noise') ? 'noise' : 'knowledge'),
-            )
+        if (requests.length === 1)
+          throw await httpFailure(
+            new Response('Input exceeds maximum context limit', {
+              status: 422,
+            }),
+          )
+        return responseFor(request, (id) =>
+          answer(id.startsWith('noise') ? 'noise' : 'knowledge'),
+        )
       },
     })
     expect(requests).toHaveLength(3)
     expect(
-      requests.slice(1).every((request) => request.state.blocks.length === 1),
+      requests.slice(1).every((request) => request.input.blocks.length === 1),
     ).toBe(true)
     expect(result.blocks.map((item) => item.id)).toEqual(['fact'])
   })
@@ -614,7 +654,7 @@ describe('conservative decisions and bounded recovery', () => {
       save: ignoreSave,
       send: async (request) =>
         responseFor(request, (id) => {
-          const target = request.state.blocks.find((item) => item.id === id)!
+          const target = request.input.blocks.find((item) => item.id === id)!
           seen.push(target.text)
           return answer(
             target.text.includes('18:30') || target.parentId === 'fact'
@@ -658,13 +698,15 @@ describe('conservative decisions and bounded recovery', () => {
         },
         send: async () => {
           calls++
-          return new Response('Busy', {
-            status: 429,
-            headers: { 'retry-after': '60' },
-          })
+          throw await httpFailure(
+            new Response('Busy', {
+              status: 429,
+              headers: { 'retry-after': '60' },
+            }),
+          )
         },
       }),
-    ).rejects.toBeInstanceOf(JevDeferred)
+    ).rejects.toBeInstanceOf(DecisionDeferred)
     expect(calls).toBe(1)
     expect(sleeps).toBe(0)
     expect(saved.at(-1)?.retryAt).toBe(61_000)
@@ -680,9 +722,11 @@ describe('conservative decisions and bounded recovery', () => {
         sleep: noSleep,
         send: async (request) => {
           calls++
-          return calls === 1
-            ? new Response('Temporarily unavailable', { status: 503 })
-            : responseFor(request)
+          if (calls === 1)
+            throw await httpFailure(
+              new Response('Temporarily unavailable', { status: 503 }),
+            )
+          return responseFor(request)
         },
       },
     )
@@ -699,13 +743,15 @@ describe('conservative decisions and bounded recovery', () => {
       sleep: noSleep,
       send: async () => {
         calls++
-        return new Response(
-          new ReadableStream({
-            start(controller) {
-              controller.error(new Error('Body connection reset'))
-            },
-          }),
-          { status: 503 },
+        throw await httpFailure(
+          new Response(
+            new ReadableStream({
+              start(controller) {
+                controller.error(new Error('Body connection reset'))
+              },
+            }),
+            { status: 503 },
+          ),
         )
       },
     })
@@ -730,7 +776,7 @@ describe('conservative decisions and bounded recovery', () => {
           return responseFor(request)
         },
       }),
-    ).rejects.toBeInstanceOf(JevDeferred)
+    ).rejects.toBeInstanceOf(DecisionDeferred)
     expect(calls).toBe(0)
     expect(sleeps).toBe(0)
   })

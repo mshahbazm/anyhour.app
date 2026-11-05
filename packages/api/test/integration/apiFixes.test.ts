@@ -15,7 +15,7 @@ test('API pagination, contact capture and request-scoped chat', async () => {
   )
     throw new Error('API fixes test requires local PostgreSQL')
   process.env.NODE_ENV = 'test'
-  process.env.LLM_KEY = 'fixture-key'
+  process.env.OPENAI_API_KEY = 'fixture-key'
   let handle: (request: Request) => Response | Promise<Response> = () =>
     new Response('Starting', { status: 503 })
   const server = Bun.serve({

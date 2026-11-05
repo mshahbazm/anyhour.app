@@ -1,3 +1,4 @@
+import type { tDecisionProviderId } from '../../../config/models.config'
 export type tBlockKind = 'knowledge' | 'action' | 'noise' | 'uncertain'
 export interface iInlinePart {
   text: string
@@ -21,7 +22,16 @@ export interface iPreparationUsage {
   outputTokens: number
 }
 export interface iCleanupCheckpoint {
-  pendingUsage?: iPreparationUsage & { attempt: number }
+  /** Provider fields are absent on checkpoints saved before they existed. */
+  pendingUsage?: iPreparationUsage & {
+    attempt: number
+    provider?: tDecisionProviderId
+    model?: string
+    cachedInputTokens?: number
+    costUsd?: string
+  }
+  /** The model that answered last. */
+  model?: string
   decisions: Record<string, iBlockDecision>
   attempts: number
   activeMs: number

@@ -166,7 +166,7 @@ test('Website pages pass through preparation and embedding via the live API and 
   process.env.BETTER_AUTH_URL = apiOrigin
   Object.assign(process.env, {
     NODE_ENV: 'test',
-    LLM_KEY: 'fixture-key',
+    OPENAI_API_KEY: 'fixture-key',
     OPENAI_BASE_URL: `http://127.0.0.1:${provider.port}/v1`,
     R2_ENDPOINT: `http://127.0.0.1:${provider.port}`,
     R2_BUCKET: 'stage',
@@ -180,6 +180,7 @@ test('Website pages pass through preparation and embedding via the live API and 
     BETTER_AUTH_URL: apiOrigin,
     FRONT_END_URL: 'http://localhost:3000',
     TYPESAFE_API_KEY: 'test-key',
+    DECISION_PROVIDER: 'typesafe',
     TYPESAFE_API_URL: `http://127.0.0.1:${provider.port}/jev`,
   }
   const cwd = new URL('../../', import.meta.url).pathname

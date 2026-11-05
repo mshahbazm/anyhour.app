@@ -1,51 +1,37 @@
-import { z } from 'zod'
+import { decisionModels, priceUsd } from '../../../config/models.config'
+import {
+  decide,
+  DecisionDeferred,
+  DecisionError,
+  type iDecisionUsage,
+  type tAnswers,
+} from '../../ai/decisions'
 import {
   cleanupLimits,
-  jevModel,
-  makeJevRequest,
-  planJevRequests,
-  shrinkJevJob,
-  type iJevJob,
-} from './jevRequests'
+  makeCleanupRequest,
+  planCleanupRequests,
+  shrinkCleanupJob,
+  type iCleanupJob,
+  type tCleanupRequest,
+} from './cleanupRequests'
 import type { iBlockDecision, iCleanupCheckpoint, iPageBlock } from './types'
 
-const kinds = ['knowledge', 'action', 'noise', 'uncertain'] as const
-const probability = z.number().min(0).max(1)
-export const decisionSchema = z
-  .object({
-    type: z.literal('choice'),
-    choice: z.enum(kinds),
-    confidence: probability,
-    probabilities: z.object({
-      knowledge: probability,
-      action: probability,
-      noise: probability,
-      uncertain: probability,
-    }),
-  })
-  .refine(
-    (a) =>
-      // Four independently rounded API probabilities can total 0.98–1.02.
-      Math.abs(Object.values(a.probabilities).reduce((s, p) => s + p, 0) - 1) <=
-        0.020001 &&
-      a.probabilities[a.choice] >=
-        Math.max(...Object.values(a.probabilities)) - 0.00001,
-  )
 const unknownDecision: iBlockDecision = { kind: 'uncertain', confidence: 0 }
 export const shouldDiscard = (decision?: iBlockDecision) =>
   decision?.kind === 'noise' && decision.confidence >= 0.95
-export class JevDeferred extends Error {
-  constructor(readonly retryAt: number) {
-    super('Jev retry deferred')
-  }
+export interface iCleanupResult {
+  answers: tAnswers<tCleanupRequest['questions']>
+  usage: iDecisionUsage
 }
+/** One try per request: the retries below are charged to the page's budget. */
+const sendOnce = (request: tCleanupRequest): Promise<iCleanupResult> =>
+  decide({ ...request, attempts: 1 })
 interface iOptions {
   checkpoint?: iCleanupCheckpoint
   save: (state: iCleanupCheckpoint) => Promise<void>
-  send: (request: ReturnType<typeof makeJevRequest>) => Promise<Response>
+  send?: (request: tCleanupRequest) => Promise<iCleanupResult>
   usage?: (
-    input: number,
-    output: number,
+    usage: iDecisionUsage,
     attempt: number,
     eventId: string,
   ) => Promise<void>
@@ -58,6 +44,7 @@ export async function classifyPageBlocks(
   options: iOptions,
 ) {
   const now = options.now ?? Date.now
+  const send = options.send ?? sendOnce
   const sleep = options.sleep ?? Bun.sleep
   const state: iCleanupCheckpoint = options.checkpoint ?? {
     decisions: {},
@@ -79,8 +66,17 @@ export async function classifyPageBlocks(
     const pending = state.pendingUsage
     if (!pending) return
     await options.usage?.(
-      pending.inputTokens,
-      pending.outputTokens,
+      {
+        // Checkpoints from before providers were switchable were Jev's.
+        provider: pending.provider ?? 'typesafe',
+        model: pending.model ?? 'jev-1.13.0',
+        inputTokens: pending.inputTokens,
+        cachedInputTokens: pending.cachedInputTokens ?? 0,
+        outputTokens: pending.outputTokens,
+        costUsd:
+          pending.costUsd ??
+          priceUsd(decisionModels.typesafe['jev-1.13.0'], pending),
+      },
       pending.attempt,
       pending.id,
     )
@@ -89,7 +85,7 @@ export async function classifyPageBlocks(
   }
   await flushUsage()
   if (state.retryAt && state.retryAt > now())
-    throw new JevDeferred(state.retryAt)
+    throw new DecisionDeferred(state.retryAt)
   delete state.retryAt
   let stopped = false
   const available = () =>
@@ -97,7 +93,7 @@ export async function classifyPageBlocks(
     state.attempts < cleanupLimits.attempts &&
     state.activeMs + now() - lastSaved < cleanupLimits.activeMs
   const execute = async (
-    job: iJevJob,
+    job: iCleanupJob,
   ): Promise<Record<string, iBlockDecision>> => {
     if (job.targets.every((id) => state.decisions[id]))
       return Object.fromEntries(
@@ -108,125 +104,112 @@ export async function classifyPageBlocks(
     for (let retry = 0; retry < cleanupLimits.retries && available(); retry++) {
       state.attempts++
       await save() // Charge the work budget before making an external request.
-      let response: Response
+      let result: iCleanupResult
       try {
-        response = await options.send(makeJevRequest(page, job))
-      } catch {
-        if (retry + 1 < cleanupLimits.retries) {
-          await sleep(1000 * 2 ** retry)
-          continue
+        result = await send(makeCleanupRequest(page, job))
+      } catch (error) {
+        const failure =
+          error instanceof DecisionError ? error.failure : 'network'
+        if (failure === 'network') {
+          if (retry + 1 < cleanupLimits.retries) {
+            await sleep(1000 * 2 ** retry)
+            continue
+          }
+          state.reason = 'networkFailure'
+          return uncertain()
         }
-        state.reason = 'networkFailure'
-        return uncertain()
-      }
-      if (response.ok) {
-        const raw: unknown = await response.json().catch(() => null)
-        const parsed = z
-          .object({
-            model: z.literal(jevModel),
-            answers: z.record(z.string(), z.unknown()),
-            usage: z.object({
-              input_tokens: z.number().int().nonnegative(),
-              output_tokens: z.number().int().nonnegative(),
-            }),
-          })
-          .safeParse(raw)
-        if (!parsed.success) {
+        if (failure === 'invalidResponse') {
           state.reason = 'invalidResponse'
           return uncertain()
         }
-        state.inputTokens += parsed.data.usage.input_tokens
-        state.outputTokens += parsed.data.usage.output_tokens
-        const decisions = Object.fromEntries(
-          job.targets.map((id) => {
-            const answer = decisionSchema.safeParse(parsed.data.answers[id])
-            if (!answer.success) {
-              state.reason = 'invalidDecision'
-              return [id, unknownDecision]
-            }
-            return [
-              id,
-              { kind: answer.data.choice, confidence: answer.data.confidence },
-            ]
-          }),
-        )
-        // Save provider work before accounting. Replaying a pending event uses
-        // its stable ID, so an acknowledged insert with a lost response is safe.
-        Object.assign(state.decisions, decisions)
-        state.pendingUsage = {
-          id: crypto.randomUUID(),
-          inputTokens: parsed.data.usage.input_tokens,
-          outputTokens: parsed.data.usage.output_tokens,
-          attempt: state.attempts,
+        if (failure === 'contextLimit') {
+          const children = shrinkCleanupJob(job)
+          if (!children.length) {
+            state.reason = 'contextLimit'
+            return uncertain()
+          }
+          const results: Record<string, iBlockDecision> = {}
+          for (const child of children)
+            Object.assign(results, await execute(child))
+          return Object.fromEntries(
+            job.targets.map((id) => {
+              const values = Object.entries(results)
+                .filter(([key]) => key === id || key.startsWith(`${id}s`))
+                .map(([, decision]) => decision)
+              return [
+                id,
+                values.length && values.every(shouldDiscard)
+                  ? {
+                      kind: 'noise',
+                      confidence: Math.min(...values.map((a) => a.confidence)),
+                    }
+                  : unknownDecision,
+              ]
+            }),
+          )
         }
-        await save()
-        await flushUsage()
-        return decisions
-      }
-      // Read errors only to recognize an explicit context-size rejection; never log bodies.
-      const body = (await response.text().catch(() => '')).slice(0, 4000)
-      if (
-        [400, 413, 422].includes(response.status) &&
-        /(?:context|token|input|state).{0,80}(?:too (?:long|large)|exceed|maximum|limit)/iu.test(
-          body,
-        )
-      ) {
-        const children = shrinkJevJob(job)
-        if (!children.length) {
-          state.reason = 'contextLimit'
+        if (failure === 'authentication') {
+          state.reason = 'authenticationFailure'
+          stopped = true
           return uncertain()
         }
-        const results: Record<string, iBlockDecision> = {}
-        for (const child of children)
-          Object.assign(results, await execute(child))
-        return Object.fromEntries(
-          job.targets.map((id) => {
-            const values = Object.entries(results)
-              .filter(([key]) => key === id || key.startsWith(`${id}s`))
-              .map(([, decision]) => decision)
-            return [
-              id,
-              values.length && values.every(shouldDiscard)
-                ? {
-                    kind: 'noise',
-                    confidence: Math.min(...values.map((a) => a.confidence)),
-                  }
-                : unknownDecision,
-            ]
-          }),
-        )
+        if (failure === 'rejected') {
+          state.reason = 'requestRejected'
+          stopped = true
+          return uncertain()
+        }
+        // Busy or failing: wait as asked, or come back later.
+        const retryAfter =
+          error instanceof DecisionError ? error.retryAfterMs : undefined
+        const delay =
+          retryAfter ?? 1000 * 2 ** retry + Math.floor(Math.random() * 250)
+        if (delay > 5000) {
+          state.retryAt = now() + Math.min(delay, 24 * 60 * 60_000)
+          await save()
+          throw new DecisionDeferred(state.retryAt)
+        }
+        if (retry + 1 === cleanupLimits.retries)
+          state.reason = 'providerUnavailable'
+        if (retry + 1 < cleanupLimits.retries) await sleep(Math.max(250, delay))
+        continue
       }
-      if ([401, 403].includes(response.status)) {
-        state.reason = 'authenticationFailure'
-        stopped = true
-        return uncertain()
+      const usage = result.usage
+      state.inputTokens += usage.inputTokens
+      state.outputTokens += usage.outputTokens
+      state.model = usage.model
+      const decisions = Object.fromEntries(
+        job.targets.map((id, index) => {
+          const answer = result.answers[index]
+          if (answer?.kind === 'choice' && answer.name === id)
+            return [id, { kind: answer.choice, confidence: answer.confidence }]
+          // A declined question is uncertain: the block is kept.
+          if (answer?.kind !== 'refusal' || answer.reason !== 'declined')
+            state.reason = 'invalidDecision'
+          return [id, unknownDecision]
+        }),
+      )
+      // Save provider work before accounting. Replaying a pending event uses
+      // its stable ID, so an acknowledged insert with a lost response is safe.
+      Object.assign(state.decisions, decisions)
+      state.pendingUsage = {
+        id: crypto.randomUUID(),
+        provider: usage.provider,
+        model: usage.model,
+        inputTokens: usage.inputTokens,
+        cachedInputTokens: usage.cachedInputTokens,
+        outputTokens: usage.outputTokens,
+        costUsd: usage.costUsd,
+        attempt: state.attempts,
       }
-      if (![429, 529].includes(response.status) && response.status < 500) {
-        state.reason = 'requestRejected'
-        stopped = true
-        return uncertain()
-      }
-      const retryHeader = response.headers.get('retry-after')
-      const delay = retryHeader
-        ? /^\d+(?:\.\d+)?$/u.test(retryHeader)
-          ? Number(retryHeader) * 1000
-          : Date.parse(retryHeader) - now()
-        : 1000 * 2 ** retry + Math.floor(Math.random() * 250)
-      if (Number.isFinite(delay) && delay > 5000) {
-        state.retryAt = now() + Math.min(delay, 24 * 60 * 60_000)
-        await save()
-        throw new JevDeferred(state.retryAt)
-      }
-      if (retry + 1 === cleanupLimits.retries)
-        state.reason = 'providerUnavailable'
-      if (retry + 1 < cleanupLimits.retries)
-        await sleep(Math.max(250, Number.isFinite(delay) ? delay : 1000))
+      await save()
+      await flushUsage()
+      return decisions
     }
     return uncertain()
   }
-  let planned: ReturnType<typeof planJevRequests>
+  let planned: ReturnType<typeof planCleanupRequests>
   try {
-    planned = planJevRequests(page, blocks)
+    planned = planCleanupRequests(page, blocks)
   } catch {
     state.reason = 'metadataBudget'
     state.complete = false

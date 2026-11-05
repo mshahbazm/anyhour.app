@@ -28,7 +28,7 @@ test('chat blocks: invalid blocks dropped, taps, contact form leads', async () =
   )
     throw new Error('Requires local PostgreSQL')
   process.env.NODE_ENV = 'test'
-  process.env.LLM_KEY = 'fixture-key'
+  process.env.OPENAI_API_KEY = 'fixture-key'
   let handle: (request: Request) => Response | Promise<Response> = () =>
     new Response('Starting', { status: 503 })
   const server = Bun.serve({

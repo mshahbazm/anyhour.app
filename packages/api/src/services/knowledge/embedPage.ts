@@ -1,4 +1,4 @@
-import { jevModel } from './cleanup/jevRequests'
+import { decisionModel } from '../ai/decisions'
 import {
   contentHash,
   formatBlocks,
@@ -220,7 +220,7 @@ export async function embedPage(runId: string, sourceId: string) {
             cleanupStatus: page.cleanup?.complete ? 'complete' : 'incomplete',
             cleanupStats: page.cleanup
               ? {
-                  model: jevModel,
+                  model: page.cleanup.model ?? decisionModel('blockCleanup'),
                   attempts: page.cleanup.attempts,
                   activeMs: page.cleanup.activeMs,
                   inputTokens: page.cleanup.inputTokens,

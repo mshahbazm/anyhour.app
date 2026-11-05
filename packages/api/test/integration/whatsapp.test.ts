@@ -26,7 +26,7 @@ mock.module('resend', () => ({
 }))
 
 // The fake model: every lead scores 82.
-mock.module('../../src/services/ai/openAi', () => ({
+mock.module('../../src/services/ai/providers/openAiClient', () => ({
   getOpenAi: () => ({
     embeddings: {
       create: async ({ input }: { input: string[] }) => ({

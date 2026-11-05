@@ -137,7 +137,7 @@ test('team chat apps: signatures, linking, member permissions, confirmations, Wh
   const providers = startRolesProviders()
   Object.assign(process.env, providers.env, {
     NODE_ENV: 'test',
-    LLM_KEY: 'fixture-key',
+    OPENAI_API_KEY: 'fixture-key',
     SLACK_CLIENT_ID: 'slack-client-id',
     SLACK_CLIENT_SECRET: 'slack-client-secret',
     SLACK_SIGNING_SECRET: signingSecret,

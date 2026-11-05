@@ -95,7 +95,7 @@ test('customer WhatsApp: signatures, inbound, one answer at a time, the 24-hour 
     throw new Error('Requires local PostgreSQL')
   Object.assign(process.env, {
     NODE_ENV: 'test',
-    LLM_KEY: 'fixture-key',
+    OPENAI_API_KEY: 'fixture-key',
     WHATSAPP_APP_SECRET: appSecret,
     WHATSAPP_VERIFY_TOKEN: verifyToken,
   })

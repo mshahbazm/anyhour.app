@@ -93,6 +93,7 @@ test('a new website skips its articles, and removing the rule reads them', async
     BETTER_AUTH_URL: origin,
     FRONT_END_URL: 'http://localhost:3000',
     TYPESAFE_API_KEY: 'fixture-key',
+    DECISION_PROVIDER: 'typesafe',
     TYPESAFE_API_URL: `${site}/jev`,
   })
   const { app } = await import('../../src/app')

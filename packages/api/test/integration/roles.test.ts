@@ -513,7 +513,7 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
     }
 
     assert(
-      Boolean(process.env.LLM_KEY || process.env.OPENAI_API_KEY),
+      Boolean(process.env.OPENAI_API_KEY),
       'The API integration test requires an OpenAI key',
     )
     {

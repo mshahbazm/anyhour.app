@@ -21,7 +21,7 @@ test('workspace helper and draft preview preserve user authorization and isolate
   const providers = startRolesProviders()
   Object.assign(process.env, providers.env)
   process.env.NODE_ENV = 'test'
-  process.env.LLM_KEY = 'fixture-key'
+  process.env.OPENAI_API_KEY = 'fixture-key'
   let handle: (request: Request) => Response | Promise<Response> = () =>
     new Response('Starting', { status: 503 })
   const server = Bun.serve({

@@ -7,11 +7,49 @@
 // (thinking counts toward max_output_tokens).
 
 /** USD per million tokens, for usage records. */
-interface iPricing {
+export interface iPricing {
   inputCostPerMillion: number
   cachedInputCostPerMillion: number
   outputCostPerMillion: number
 }
+
+// Who serves each kind of call (services/ai/providers/). Keys belong to a
+// vendor (one environment variable each); each capability picks a provider
+// (LLM_PROVIDER, DECISION_PROVIDER), and each provider names the vendor whose
+// key it needs. Adding a provider widens these ids; the registries and
+// configs below then need its entry.
+export const vendorKeys = {
+  openai: 'OPENAI_API_KEY',
+  typesafe: 'TYPESAFE_API_KEY',
+} as const
+export type tVendor = keyof typeof vendorKeys
+
+export const llmProviderIds = ['openai'] as const
+export type tLlmProviderId = (typeof llmProviderIds)[number]
+export const llmProviderVendors = {
+  openai: 'openai',
+} as const satisfies Record<tLlmProviderId, tVendor>
+
+export const decisionProviderIds = ['openai', 'typesafe'] as const
+export type tDecisionProviderId = (typeof decisionProviderIds)[number]
+export const decisionProviderVendors = {
+  openai: 'openai',
+  typesafe: 'typesafe',
+} as const satisfies Record<tDecisionProviderId, tVendor>
+// How each decision provider is best asked. OpenAI caches the shared input
+// (1,024 tokens or more) but bills question text in full on every question,
+// so long instructions and criteria go in the input once. Jev reads each
+// question with its own criteria.
+export const decisionProviderTraits = {
+  openai: { instructionsInInput: true },
+  typesafe: { instructionsInInput: false },
+} as const satisfies Record<
+  tDecisionProviderId,
+  { instructionsInInput: boolean }
+>
+
+/** OpenAI's Flex tier: slower and sometimes unavailable, about half price. */
+export type tServiceTier = 'flex'
 
 export const languageModels = {
   luna: {
@@ -21,6 +59,11 @@ export const languageModels = {
       cachedInputCostPerMillion: 0.02,
       outputCostPerMillion: 1.2,
     },
+    flexPricing: {
+      inputCostPerMillion: 0.1,
+      cachedInputCostPerMillion: 0.01,
+      outputCostPerMillion: 0.6,
+    },
   },
   terra: {
     id: 'gpt-5.6-terra',
@@ -28,6 +71,11 @@ export const languageModels = {
       inputCostPerMillion: 2,
       cachedInputCostPerMillion: 0.2,
       outputCostPerMillion: 12,
+    },
+    flexPricing: {
+      inputCostPerMillion: 1,
+      cachedInputCostPerMillion: 0.1,
+      outputCostPerMillion: 6,
     },
   },
   sol: {
@@ -37,8 +85,16 @@ export const languageModels = {
       cachedInputCostPerMillion: 0.5,
       outputCostPerMillion: 30,
     },
+    flexPricing: {
+      inputCostPerMillion: 2,
+      cachedInputCostPerMillion: 0.2,
+      outputCostPerMillion: 10,
+    },
   },
-} as const satisfies Record<string, { id: string; pricing: iPricing }>
+} as const satisfies Record<
+  string,
+  { id: string; pricing: iPricing; flexPricing?: iPricing }
+>
 
 export type tLanguageModel = keyof typeof languageModels
 type tEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh'
@@ -48,6 +104,12 @@ interface iLlmTask {
   effort: tEffort
   max_output_tokens?: number
   timeoutMs: number
+  /**
+   * 'flex' for background work that can wait (pageProfile,
+   * knowledgeOverview, contactDetails, businessHours): about half price, may
+   * be slower or busy. Off unless set here.
+   */
+  serviceTier?: tServiceTier
 }
 
 // One-shot calls, by purpose. Each is a bounded job, so Luna is enough; a
@@ -207,29 +269,38 @@ export const agentModels = {
   }
 >
 
-// The model and settings an agent runs with, in the Agents SDK's shape.
-export function agentModel(agent: keyof typeof agentModels) {
-  const settings = agentModels[agent]
-  return {
-    model: languageModels[settings.model].id,
-    modelSettings: {
-      reasoning: { effort: settings.effort },
-      text: { verbosity: settings.verbosity },
-    },
-  }
+export type tAgent = keyof typeof agentModels
+
+export interface iUsageTokens {
+  inputTokens: number
+  /** Part of inputTokens served from the provider's prompt cache. */
+  cachedInputTokens?: number
+  outputTokens: number
 }
 
-export function costUsd(
-  model: tLanguageModel,
-  inputTokens: number,
-  outputTokens: number,
-) {
-  const { pricing } = languageModels[model]
+/** USD for one call, cached input priced separately when reported. */
+export function priceUsd(pricing: iPricing, usage: iUsageTokens) {
+  const cached = Math.min(usage.cachedInputTokens ?? 0, usage.inputTokens)
   return (
-    (inputTokens * pricing.inputCostPerMillion +
-      outputTokens * pricing.outputCostPerMillion) /
+    ((usage.inputTokens - cached) * pricing.inputCostPerMillion +
+      cached * pricing.cachedInputCostPerMillion +
+      usage.outputTokens * pricing.outputCostPerMillion) /
     1_000_000
   ).toFixed(10)
+}
+
+/** What a language model call cost, on the tier it ran on. */
+export function costUsd(
+  model: tLanguageModel,
+  usage: iUsageTokens,
+  serviceTier?: tServiceTier,
+) {
+  const entry: { pricing: iPricing; flexPricing?: iPricing } =
+    languageModels[model]
+  return priceUsd(
+    (serviceTier === 'flex' && entry.flexPricing) || entry.pricing,
+    usage,
+  )
 }
 
 // Knowledge search: every chunk and question is embedded with this model.
@@ -241,3 +312,86 @@ export const embeddingModel = {
 
 // Bot profile pictures.
 export const imageModel = 'gpt-image-2.5-flare'
+
+// Decision models: typed judgments (yes/no, one choice of several, a score)
+// about some input, served by the decision provider (DECISION_PROVIDER).
+// OpenAI Decisions is the default, so a new install needs only an OpenAI key;
+// TypeSafe Jev is optional.
+export const decisionModels = {
+  openai: {
+    // Output tokens are free; cached input is a tenth of the price.
+    'gpt-6-luna': {
+      inputCostPerMillion: 0.1,
+      cachedInputCostPerMillion: 0.01,
+      outputCostPerMillion: 0,
+    },
+  },
+  typesafe: {
+    'jev-1.13.0': {
+      inputCostPerMillion: 0.042,
+      cachedInputCostPerMillion: 0.042,
+      outputCostPerMillion: 0,
+    },
+    'jev-1.14.0': {
+      inputCostPerMillion: 0.042,
+      cachedInputCostPerMillion: 0.042,
+      outputCostPerMillion: 0,
+    },
+  },
+} as const satisfies Record<tDecisionProviderId, Record<string, iPricing>>
+
+/** How big one request may be: estimated JSON bytes and question count. */
+export interface iDecisionLimits {
+  /** The shared input (page and blocks, or the site's groups). */
+  inputBytes: number
+  /** The whole request, questions included. */
+  requestBytes: number
+  questions: number
+}
+
+interface iDecisionTask {
+  /** The kind its usage is recorded as in ai_usage_event. */
+  usageKind: 'cleanup' | 'scopePlan'
+  models: { [P in tDecisionProviderId]: keyof (typeof decisionModels)[P] }
+  limits: Record<tDecisionProviderId, iDecisionLimits>
+  timeoutMs: number
+  /** Tries per call, the first included; busy or failing providers retry. */
+  attempts: number
+}
+
+// OpenAI takes up to 400 questions per request and caches a repeated input
+// of 1,024 tokens or more. TypeSafe's limits are its account's: 48 kB per
+// request (24 kB of state), two at a time, one start per second.
+const openAiLimits = {
+  inputBytes: 120_000,
+  requestBytes: 600_000,
+  questions: 400,
+}
+const typeSafeLimits = {
+  inputBytes: 24_000,
+  requestBytes: 48_000,
+  questions: 400,
+}
+
+export const decisionTasks = {
+  // Whether each block of a page is knowledge, an action, noise or uncertain
+  // (services/knowledge/cleanup/).
+  blockCleanup: {
+    usageKind: 'cleanup',
+    models: { openai: 'gpt-6-luna', typesafe: 'jev-1.13.0' },
+    limits: { openai: openAiLimits, typesafe: typeSafeLimits },
+    timeoutMs: 45_000,
+    attempts: 3,
+  },
+  // Which path groups of a new website are articles or listings
+  // (services/knowledge/scopePlan.ts). One try: reading never waits on it.
+  scopePlan: {
+    usageKind: 'scopePlan',
+    models: { openai: 'gpt-6-luna', typesafe: 'jev-1.14.0' },
+    limits: { openai: openAiLimits, typesafe: typeSafeLimits },
+    timeoutMs: 45_000,
+    attempts: 1,
+  },
+} as const satisfies Record<string, iDecisionTask>
+
+export type tDecisionTask = keyof typeof decisionTasks

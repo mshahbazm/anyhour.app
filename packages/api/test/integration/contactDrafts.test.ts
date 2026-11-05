@@ -13,7 +13,7 @@ import type {
 
 // The fake model answers the contact draft with what the owner's text says.
 let calls = 0
-mock.module('../../src/services/ai/openAi', () => ({
+mock.module('../../src/services/ai/providers/openAiClient', () => ({
   getOpenAi: () => ({
     responses: {
       parse: async () => {

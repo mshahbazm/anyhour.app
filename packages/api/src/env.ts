@@ -1,4 +1,12 @@
 import { z } from 'zod'
+import {
+  decisionProviderIds,
+  decisionProviderVendors,
+  llmProviderIds,
+  llmProviderVendors,
+  vendorKeys,
+  type tVendor,
+} from './config/models.config'
 
 const httpUrl = z
   .url()
@@ -27,9 +35,10 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().min(1),
   EMAIL_FROM: z.string().min(1),
   PORT: z.coerce.number().int().min(1).max(65535).default(3001),
-  LLM_PROVIDER: z.literal('openai').default('openai'),
-  LLM_KEY: z.string().min(1).optional(),
-  OPENAI_API_KEY: z.string().min(1).optional(),
+  // AI providers (config/models.config.ts): one key per vendor, and each
+  // capability picks its provider. The selected providers' keys are required.
+  LLM_PROVIDER: z.enum(llmProviderIds).default('openai'),
+  OPENAI_API_KEY: optionalText,
   R2_ENDPOINT: httpUrl.optional(),
   R2_BUCKET: z.string().min(1).optional(),
   R2_ACCESS_KEY_ID: z.string().min(1).optional(),
@@ -39,8 +48,14 @@ const envSchema = z.object({
   CLOUDFLARE_API_TOKEN: optionalText,
   // Pages one website reads at most; later per plan.
   MAX_WEBSITE_PAGES: z.coerce.number().int().positive().default(500),
-  TYPESAFE_API_KEY: z.string().min(1).optional(),
-  TYPESAFE_API_URL: httpUrl.optional(),
+  // Who answers typed judgments (page cleanup, website scope).
+  DECISION_PROVIDER: z.enum(decisionProviderIds).default('openai'),
+  TYPESAFE_API_KEY: optionalText,
+  // Another TypeSafe endpoint (a regional or self-hosted one); its API by default.
+  TYPESAFE_API_URL: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    httpUrl.optional(),
+  ),
   // Team chat apps (docs/teamChat.md). Each app is offered only when all of
   // its variables are set; otherwise its card says "Not available yet".
   SLACK_CLIENT_ID: z.string().min(1).optional(),
@@ -53,11 +68,25 @@ const envSchema = z.object({
   WHATSAPP_VERIFY_TOKEN: z.string().min(1).optional(),
 })
 
-const result = envSchema.safeParse({
-  ...process.env,
-  // Keep existing installations working during the frontend URL rename.
-  FRONT_END_URL: process.env.FRONT_END_URL ?? process.env.WEB_URL,
-})
+const result = envSchema
+  .superRefine((value, context) => {
+    const selected = [
+      llmProviderVendors[value.LLM_PROVIDER],
+      decisionProviderVendors[value.DECISION_PROVIDER],
+    ]
+    for (const name of new Set(selected.map((vendor) => vendorKeys[vendor])))
+      if (!value[name])
+        context.addIssue({
+          code: 'custom',
+          path: [name],
+          message: 'Required by the selected AI provider',
+        })
+  })
+  .safeParse({
+    ...process.env,
+    // Keep existing installations working during the frontend URL rename.
+    FRONT_END_URL: process.env.FRONT_END_URL ?? process.env.WEB_URL,
+  })
 
 if (!result.success) {
   const names = [...new Set(result.error.issues.map((issue) => issue.path[0]))]
@@ -65,3 +94,6 @@ if (!result.success) {
 }
 
 export const env = result.data
+
+/** A vendor's API key (checked at startup for the selected providers). */
+export const vendorKey = (vendor: tVendor) => env[vendorKeys[vendor]]

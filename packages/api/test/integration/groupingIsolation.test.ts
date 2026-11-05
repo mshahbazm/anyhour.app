@@ -67,7 +67,7 @@ test('grouping isolates unreadable pages and preserves prepared evidence when on
     FRONT_END_URL: 'http://localhost:3000',
     PORT: '3001',
     BETTER_AUTH_URL: 'http://localhost:3001',
-    LLM_KEY: 'fixture',
+    OPENAI_API_KEY: 'fixture',
     OPENAI_BASE_URL: `http://127.0.0.1:${fixture.port}/v1`,
     R2_ENDPOINT: `http://127.0.0.1:${fixture.port}`,
     R2_BUCKET: 'stage',
