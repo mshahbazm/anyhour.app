@@ -21,6 +21,8 @@ export function getBoss() {
     // Opening hours from Your business: one waiting and one running per
     // workspace, so a burst of changes reads them once.
     await boss.createQueue('business-hours', { policy: 'stately' })
+    // Contact details from Your business, the same way.
+    await boss.createQueue('contact-details', { policy: 'stately' })
     await boss.createQueue('lead-captured')
     // Contact memory after a conversation ends (services/contacts/memory.ts).
     await boss.createQueue('contact-facts')
@@ -59,6 +61,22 @@ export async function enqueueBusinessHours(organizationId: string) {
   const boss = await getBoss()
   await boss.send(
     'business-hours',
+    { organizationId },
+    {
+      singletonKey: organizationId,
+      startAfter: 30,
+      retryLimit: 1,
+      retryDelay: 120,
+    },
+  )
+}
+
+// Reads the workspace's contact details once its knowledge settles after a
+// change (services/workspace/contactsFromKnowledge.ts).
+export async function enqueueContactDetails(organizationId: string) {
+  const boss = await getBoss()
+  await boss.send(
+    'contact-details',
     { organizationId },
     {
       singletonKey: organizationId,

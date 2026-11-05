@@ -5,6 +5,10 @@ import {
   parseWhatsappNumber,
   whatsappLinkNumbers,
 } from '../../src/services/whatsappQuestion/number'
+import {
+  readDetail,
+  textSays,
+} from '../../src/services/workspace/contactsFromKnowledge'
 
 test('a WhatsApp number is read the ways owners write it', () => {
   for (const value of [
@@ -31,10 +35,14 @@ test('WhatsApp links are found in website text', () => {
   expect(whatsappLinkNumbers('Call us on +44 7700 900123')).toEqual([])
 })
 
-test('the WhatsApp button carries the saved number, on the website only', () => {
+test('the WhatsApp button carries the known number, on the website only', () => {
   const shown = resolveBlock(
     { kind: 'whatsapp' },
-    { channel: 'widget', whatsappNumber: '447700900123' },
+    {
+      channel: 'widget',
+      whatsappQuestion: true,
+      whatsappNumber: '447700900123',
+    },
   )
   expect(shown.ok && shown.block).toMatchObject({
     kind: 'whatsapp',
@@ -43,16 +51,31 @@ test('the WhatsApp button carries the saved number, on the website only', () => 
     fallback:
       'Chat with us on WhatsApp: https://wa.me/447700900123?text=Hi%2C%20I%20found%20you%20on%20your%20website.',
   })
+  const missing = resolveBlock(
+    { kind: 'whatsapp' },
+    { channel: 'widget', whatsappQuestion: true, whatsappNumber: null },
+  )
+  expect(!missing.ok && missing.reason).toContain(
+    'No WhatsApp number is saved.',
+  )
   expect(
     resolveBlock(
       { kind: 'whatsapp' },
-      { channel: 'widget', whatsappNumber: null },
+      {
+        channel: 'widget',
+        whatsappQuestion: false,
+        whatsappNumber: '447700900123',
+      },
     ).ok,
   ).toBe(false)
   expect(
     resolveBlock(
       { kind: 'whatsapp' },
-      { channel: 'whatsapp', whatsappNumber: '447700900123' },
+      {
+        channel: 'whatsapp',
+        whatsappQuestion: true,
+        whatsappNumber: '447700900123',
+      },
     ),
   ).toEqual({ ok: false, reason: 'They’re already on WhatsApp.' })
 })
@@ -79,4 +102,69 @@ test('the WhatsApp section quotes the question, on the website only', () => {
   expect(
     buildVisitorPrompt({ ...input, whatsappQuestion: null }),
   ).not.toContain('kind "whatsapp"')
+})
+
+test('contact details are only what the text really says', () => {
+  const note = 'WhatsApp\nMessage us on WhatsApp: +44 7700 900123.'
+  expect(readDetail('whatsapp', '+44 7700 900123', note)).toBe('447700900123')
+  // A plain phone number isn't WhatsApp.
+  expect(
+    readDetail('whatsapp', '+44 7700 900123', 'Call us on +44 7700 900123'),
+  ).toBeNull()
+  // Never a number the text doesn't have.
+  expect(readDetail('whatsapp', '+44 7700 900999', note)).toBeNull()
+  expect(
+    readDetail('phone', '+44 20 7946 0000', 'Call +44 (20) 7946-0000'),
+  ).toBe('442079460000')
+  expect(readDetail('email', 'Hello@Shop.com', 'Email hello@shop.com')).toBe(
+    'hello@shop.com',
+  )
+  expect(readDetail('email', 'not an email', 'not an email')).toBeNull()
+  expect(
+    readDetail(
+      'address',
+      '12 High Street, Leeds LS1 4AB',
+      'Find us at\n12 High Street\nLeeds LS1 4AB',
+    ),
+  ).toBe('12 High Street, Leeds LS1 4AB')
+  // A deleted or changed source no longer says it.
+  expect(textSays('whatsapp', '447700900123', 'We moved to email only')).toBe(
+    false,
+  )
+})
+
+test('the visitor prompt quotes contact details, WhatsApp only off the button', () => {
+  const contactDetails = {
+    whatsapp: {
+      value: '447700900123',
+      source: 'note' as const,
+      sourceId: 'n1',
+    },
+    phone: null,
+    email: {
+      value: 'hello@shop.com',
+      source: 'website' as const,
+      sourceId: 'p1',
+    },
+    address: null,
+  }
+  const input = {
+    botName: 'Maya',
+    goal: null,
+    goalNotes: null,
+    rules: [],
+    business: null,
+    overview: null,
+    preview: false,
+    contactDetails,
+  }
+  const off = buildVisitorPrompt(input)
+  expect(off).toContain('"whatsapp":"+447700900123"')
+  expect(off).toContain('"email":"hello@shop.com"')
+  const on = buildVisitorPrompt({
+    ...input,
+    whatsappQuestion: 'Chat on WhatsApp',
+  })
+  expect(on).not.toContain('+447700900123')
+  expect(on).toContain('"email":"hello@shop.com"')
 })

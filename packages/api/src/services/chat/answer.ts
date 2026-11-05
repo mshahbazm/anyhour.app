@@ -32,6 +32,7 @@ import { blockInputSchema } from '../../schemas/chatBlock.schema'
 import type { tChatBlock } from '../../schemas/chatBlock.schema'
 import { resolveBlock } from './blocks'
 import { listMemberRules } from '../memberRules/rules'
+import { knownWhatsappNumber } from '../whatsappQuestion/knownNumber'
 
 export async function createAnswerStream(
   assistantId: string,
@@ -169,15 +170,27 @@ export async function createAnswerStream(
       'Show one tappable block under your reply: quick replies (choices), an option list (list), a checklist, a short contact form (contactForm), or the button that opens a chat with the business on WhatsApp (whatsapp; the number is filled in for you). Only when it makes answering easier. Still write your reply as normal text; the block appears beneath it. Each call replaces the previous block.',
     parameters: z.object({ block: blockInputSchema }),
     execute: async (input) => {
+      const whatsappQuestion = Boolean(record.appearance.whatsapp)
+      // Read at send time: the WhatsApp channel, else Your business.
+      const whatsappNumber =
+        input.block.kind === 'whatsapp' &&
+        whatsappQuestion &&
+        channel === 'widget'
+          ? (await knownWhatsappNumber(record.organizationId)).number
+          : null
       const resolved = resolveBlock(input.block, {
         channel,
-        whatsappNumber: record.appearance.whatsapp?.number ?? null,
+        whatsappQuestion,
+        whatsappNumber,
       })
       if (!resolved.ok) return { status: 'not_shown', reason: resolved.reason }
       block = resolved.block
       return { status: 'shown', visitorSees: resolved.block.fallback }
     },
   })
+  const business = await getBusinessProfile(record.organizationId).catch(
+    () => null,
+  )
   const agent = new Agent({
     name: record.name,
     ...agentModel('visitorChat'),
@@ -187,9 +200,8 @@ export async function createAnswerStream(
       goal: record.goal,
       goalNotes: record.goalNotes,
       rules: await listMemberRules(record.organizationId),
-      business: await getBusinessProfile(record.organizationId).catch(
-        () => null,
-      ),
+      business,
+      contactDetails: business?.contactDetails ?? null,
       overview: record.knowledgeOverview,
       sources: visitorCatalogueLines(
         await cachedSourceCatalogue({

@@ -20,13 +20,16 @@ export interface iOrganization {
 // Mirrors the owner shape of assistant.appearance.whatsapp (docs/whatsappQuestion.md).
 export type tWhatsappApproach =
   'straightAway' | 'quickQuestion' | 'qualifyFirst'
+/** Where the WhatsApp number comes from: the WhatsApp channel, or Your business. */
+export type tWhatsappNumberSource = 'channel' | 'note' | 'website'
 export interface iWhatsappQuestion {
   question: string
-  /** Digits only, with the country code. */
-  number: string
   /** `custom` when the rule was changed elsewhere, e.g. in chat. */
   approach: tWhatsappApproach | 'custom'
   ruleId: string | null
+  /** Read only: digits with the country code; null when none is known. */
+  number: string | null
+  numberSource: tWhatsappNumberSource | null
 }
 /** The appearance as the owner sees it: with the WhatsApp number and rule. */
 export type tOwnerAppearance = Omit<iAppearance, 'whatsapp'> & {

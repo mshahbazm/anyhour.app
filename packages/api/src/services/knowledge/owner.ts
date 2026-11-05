@@ -3,7 +3,11 @@ import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import { db } from '../../db'
 import { organization } from '../../db/schema'
 import { ApiError } from '../http/apiError'
-import { enqueueBusinessHours, enqueueOverviewRefresh } from '../queue/boss'
+import {
+  enqueueBusinessHours,
+  enqueueContactDetails,
+  enqueueOverviewRefresh,
+} from '../queue/boss'
 import { findWorkspaceAi } from '../assistants/workspaceAi'
 
 type tTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
@@ -43,9 +47,11 @@ export async function lockOwner(tx: tTransaction, owner: iKnowledgeOwner) {
 }
 
 // The AI's overview covers Your business, so a change refreshes it; an
-// unchanged input skips the model call. The opening hours are read again too.
+// unchanged input skips the model call. The opening hours and contact
+// details are read again too.
 export async function knowledgeChanged(owner: iKnowledgeOwner) {
   const ai = await findWorkspaceAi(owner.organizationId)
   if (ai) await enqueueOverviewRefresh(ai.id).catch(() => undefined)
   await enqueueBusinessHours(owner.organizationId).catch(() => undefined)
+  await enqueueContactDetails(owner.organizationId).catch(() => undefined)
 }

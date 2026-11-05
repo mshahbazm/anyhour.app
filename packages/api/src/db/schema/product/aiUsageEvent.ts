@@ -51,7 +51,7 @@ export const aiUsageEvent = pgTable(
         'noteOffer',
         'businessHours',
         'noteDrafts',
-        'whatsappNumber',
+        'contactDetails',
       ],
     }).notNull(),
     provider: text('provider').notNull(),

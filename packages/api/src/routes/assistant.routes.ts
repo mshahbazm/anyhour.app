@@ -16,7 +16,7 @@ import { syncWebsiteChannels } from '../services/connections/website'
 import { siteInsights } from '../services/insights/siteInsights'
 import { insightsLimits } from '../config/tracking.config'
 import { saveWhatsappQuestionSchema } from '../schemas/whatsappQuestion.schema'
-import { findWhatsappNumber } from '../services/whatsappQuestion/findNumber'
+import { knownWhatsappNumber } from '../services/whatsappQuestion/knownNumber'
 import {
   appearanceKeepingWhatsapp,
   ownerAssistant,
@@ -134,8 +134,9 @@ assistantRoutes.patch(
   },
 )
 
-// The WhatsApp question (docs/whatsappQuestion.md): the number to prefill,
-// and saving or removing the question with its rule.
+// The WhatsApp question (docs/whatsappQuestion.md): the number it shares
+// (read from the WhatsApp channel or Your business), and saving or removing
+// the question with its rule.
 const whatsappQuestion =
   '/:organizationId/assistants/:assistantId/whatsapp-question'
 
@@ -148,7 +149,7 @@ assistantRoutes.get(`${whatsappQuestion}/number`, async (c) => {
     'read',
   )
   await ownedAssistant(organizationId, assistantId)
-  return c.json(await findWhatsappNumber(organizationId, assistantId))
+  return c.json(await knownWhatsappNumber(organizationId))
 })
 
 assistantRoutes.put(

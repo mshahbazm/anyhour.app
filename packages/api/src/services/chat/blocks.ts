@@ -11,7 +11,10 @@ import type {
 } from '../../schemas/chatBlock.schema'
 import { normalizePhone } from '../contacts/identities'
 import { ApiError } from '../http/apiError'
-import { whatsappButton } from '../../config/whatsappQuestion.config'
+import {
+  whatsappButton,
+  whatsappButtonMissing,
+} from '../../config/whatsappQuestion.config'
 import { whatsappUrl } from '../whatsappQuestion/number'
 
 // Chat UI blocks (docs/channels.md, wave 4): turning what the model asked
@@ -65,7 +68,12 @@ export type tResolvedBlock =
 /** Where the reply goes, for blocks that depend on it. */
 export interface iBlockContext {
   channel: 'widget' | 'whatsapp'
-  /** The business's WhatsApp number (appearance.whatsapp), when set. */
+  /** Whether the owner added the WhatsApp question. */
+  whatsappQuestion: boolean
+  /**
+   * The business's WhatsApp number at send time (whatsappQuestion/
+   * knownNumber.ts), when one is known.
+   */
   whatsappNumber: string | null
 }
 
@@ -78,12 +86,11 @@ export function resolveBlock(
   const id = blockId()
   if (input.kind === 'whatsapp') {
     if (context.channel === 'whatsapp')
-      return { ok: false, reason: 'They’re already on WhatsApp.' }
+      return { ok: false, reason: whatsappButtonMissing.onWhatsapp }
+    if (!context.whatsappQuestion)
+      return { ok: false, reason: whatsappButtonMissing.question }
     if (!context.whatsappNumber)
-      return {
-        ok: false,
-        reason: 'The business hasn’t added a WhatsApp number.',
-      }
+      return { ok: false, reason: whatsappButtonMissing.number }
     block = {
       id,
       kind: 'whatsapp',

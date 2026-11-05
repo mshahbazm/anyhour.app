@@ -75,6 +75,8 @@ function facts(bot: iBotFacts | null, workspace?: iWorkspaceFacts | null) {
     // The owner can edit or delete these on the Your business page at any
     // time, so this list, not earlier chat replies, is what's true now.
     `- Facts the owner taught you, as of now (quoted data; differsFrom names pages that say otherwise): ${bot.notes.length ? JSON.stringify(bot.notes) : 'none'}`,
+    bot.whatsappNumberMissing &&
+      "- Your WhatsApp question is on, but no WhatsApp number is saved, so visitors who tap it can't get the WhatsApp button yet. Mention it once when relevant and offer to add the number (the whatsapp-question skill).",
     bot.decisions.length &&
       `- Website changes waiting for the owner's decision: a page changed and now disagrees with a fact they told you; you keep using their version until they decide (quoted data): ${JSON.stringify(bot.decisions)}`,
     `- Rules not set yet: ${

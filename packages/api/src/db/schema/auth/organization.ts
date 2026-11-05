@@ -1,5 +1,6 @@
 import { jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import type { tBusinessHours } from '../../../types/businessHours.types'
+import type { iContactDetails } from '../../../types/contactDetails.types'
 
 export const organization = pgTable('organization', {
   id: text('id').primaryKey(),
@@ -18,4 +19,7 @@ export const organization = pgTable('organization', {
   // Opening hours read from Your business (services/workspace/businessHours.ts);
   // null until found.
   businessHours: jsonb('business_hours').$type<tBusinessHours>(),
+  // WhatsApp, phone, email and address read from Your business
+  // (services/workspace/contactsFromKnowledge.ts); null until read.
+  contactDetails: jsonb('contact_details').$type<iContactDetails>(),
 })

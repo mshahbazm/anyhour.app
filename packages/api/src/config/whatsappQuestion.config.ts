@@ -11,12 +11,13 @@ export const whatsappApproaches = [
 ] as const
 export type tWhatsappApproach = (typeof whatsappApproaches)[number]
 
-/** Stored in `assistant.appearance.whatsapp`. */
+/**
+ * Stored in `assistant.appearance.whatsapp`. The number is a fact in Your
+ * business (contact details), never stored here.
+ */
 export interface iWhatsappQuestion {
   /** The starter question, 1..80 characters. */
   question: string
-  /** Digits only, with the country code (8..15 digits). */
-  number: string
   approach: tWhatsappApproach
   /** The member_rule this created. */
   ruleId: string | null
@@ -29,6 +30,22 @@ export const whatsappQuestionLimits = {
 } as const
 
 export const defaultWhatsappQuestion = 'Chat with us on WhatsApp'
+export const defaultWhatsappApproach: tWhatsappApproach = 'quickQuestion'
+
+/** The note a typed number is saved as (docs/whatsappQuestion.md, Revision 2). */
+export const whatsappNote = {
+  title: 'WhatsApp',
+  text: (digits: string) =>
+    `Our WhatsApp number is +${digits} (https://wa.me/${digits}).`,
+} as const
+
+/** Why the WhatsApp button can't be shown, as the visitor chat's AI reads it. */
+export const whatsappButtonMissing = {
+  number:
+    'No WhatsApp number is saved. Tell them the team will get back to them and offer to take their contact details.',
+  question: 'The business doesn’t share WhatsApp in this chat.',
+  onWhatsapp: 'They’re already on WhatsApp.',
+} as const
 
 // The rule each approach saves. Changing approach rewrites that rule's text
 // and tag; a rule whose text no longer matches is the owner's own ("custom").

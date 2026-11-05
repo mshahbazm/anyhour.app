@@ -171,13 +171,14 @@ export const llmTasks = {
     max_output_tokens: 2000,
     timeoutMs: 30_000,
   },
-  // The business's WhatsApp number, from notes and website passages, when
-  // no link names it (services/whatsappQuestion/findNumber.ts).
-  whatsappNumber: {
+  // The business's WhatsApp, phone, email and address, read from its notes
+  // and the website passages about them
+  // (services/workspace/contactsFromKnowledge.ts).
+  contactDetails: {
     model: 'luna',
     effort: 'low',
-    max_output_tokens: 800,
-    timeoutMs: 20_000,
+    max_output_tokens: 1200,
+    timeoutMs: 30_000,
   },
   // At a handoff, the reply the AI suggests for the team member to
   // send in the chat. Customer-facing, so the chat tier.

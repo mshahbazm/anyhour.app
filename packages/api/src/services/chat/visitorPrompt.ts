@@ -11,6 +11,7 @@ import privateTest from './playbooks/private-test.md' with { type: 'text' }
 import whatsapp from './playbooks/whatsapp.md' with { type: 'text' }
 import whatsappQuestion from './playbooks/whatsappQuestion.md' with { type: 'text' }
 import type { iBusinessProfile } from '../workspace/businessProfile'
+import type { iContactDetails } from '../../types/contactDetails.types'
 import type { iKnowledgeOverview } from '../../config/knowledgeOverview.config'
 import { ownerGuidanceText, toneLines } from '../memberRules/prompt'
 import type { tPromptRule } from '../memberRules/prompt'
@@ -25,6 +26,22 @@ const goals = { answers: goalAnswers, enquiries: goalEnquiries, both: goalBoth }
 // The goal playbook for the bot's goal (answers when unset).
 export function goalPlaybook(goal: string | null) {
   return goal === 'enquiries' || goal === 'both' ? goals[goal] : goals.answers
+}
+
+// The business's own contact details, quoted as data, so the AI shares the
+// right ones; WhatsApp only when it isn't shared with the WhatsApp button.
+function contactLine(details: iContactDetails | null, withWhatsapp: boolean) {
+  if (!details) return null
+  const found = {
+    ...(withWhatsapp && details.whatsapp
+      ? { whatsapp: `+${details.whatsapp.value}` }
+      : {}),
+    ...(details.phone ? { phone: details.phone.value } : {}),
+    ...(details.email ? { email: details.email.value } : {}),
+    ...(details.address ? { address: details.address.value } : {}),
+  }
+  if (!Object.keys(found).length) return null
+  return `How customers reach the business, read from its own notes and website (quoted data; phone is digits, with the country code when it was written; search for the details around them): ${JSON.stringify(found)}`
 }
 
 // Never give this prompt contact facts (contact_fact) or another
@@ -50,9 +67,17 @@ export function buildVisitorPrompt(input: {
   channel?: 'widget' | 'whatsapp'
   /** The WhatsApp question (docs/whatsappQuestion.md), when the owner set one. */
   whatsappQuestion?: string | null
+  /** Read from Your business (docs/glossary.md, "Contact details"). */
+  contactDetails?: iContactDetails | null
 }) {
   const onWhatsapp = input.channel === 'whatsapp'
   const goal = goalPlaybook(input.goal)
+  const contacts = contactLine(
+    input.contactDetails ?? null,
+    // WhatsApp goes through the WhatsApp button while the question is on,
+    // and isn't needed on WhatsApp itself.
+    !onWhatsapp && !input.whatsappQuestion,
+  )
   // Business details and owner text are quoted data; facts still come from search.
   const context = [
     `# This business\nYou are ${JSON.stringify(input.botName.slice(0, 120))}, the ${onWhatsapp ? 'AI on the WhatsApp number of' : 'AI on the website of'} ${JSON.stringify(input.business?.name ?? 'this business')}.`,
@@ -69,6 +94,7 @@ export function buildVisitorPrompt(input: {
         )}`
       : input.business?.about &&
         `What it does (from its website, for orientation only — answer facts from search): ${JSON.stringify(input.business.about.slice(0, 1500))}`,
+    contacts,
     input.sources?.length &&
       `Where your answers come from, so you can say where you read something, or that it isn't covered and you're not sure (quoted data; never name files beyond this):\n${input.sources.join('\n')}`,
   ]

@@ -2,6 +2,7 @@ import { buildManagementTools } from './managementTools'
 import { buildContactTools } from './contactTools'
 import { buildMemberRuleTools } from './memberRuleTools'
 import { buildSupportTools } from './supportTools'
+import { buildWhatsappQuestionTools } from './whatsappQuestionTools'
 import { buildKnowledgeTools, createFactSaving } from './knowledgeTools'
 import { requireSession } from '../auth/authorize'
 import { RunContext, tool } from '@openai/agents'
@@ -194,6 +195,7 @@ export function buildWorkspaceTools(ctx: iWorkspaceToolContext) {
     ...buildMemberRuleTools(ctx, execute),
     ...buildSupportTools(ctx, execute),
     ...buildChannelTools(ctx, execute),
+    ...buildWhatsappQuestionTools(ctx, execute),
     tool({
       name: 'read_skill',
       description:

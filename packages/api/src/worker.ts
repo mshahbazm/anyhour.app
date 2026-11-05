@@ -27,6 +27,7 @@ import { preparePage } from './services/knowledge/preparePage'
 import { refreshOverview } from './services/knowledge/overview/refreshOverview'
 import { handleLeadCaptured } from './services/leads/captured'
 import { findBusinessHours } from './services/workspace/hoursFromKnowledge'
+import { findContactDetails } from './services/workspace/contactsFromKnowledge'
 import { closeIdleConversations } from './services/chat/idleConversations'
 import { runContactFactsJob } from './services/contacts/memory'
 import { whatsappConfig } from './config/whatsapp.config'
@@ -118,6 +119,14 @@ await boss.work<{ assistantId: string }>('refresh-overview', async ([job]) => {
 await boss.work<{ organizationId: string }>('business-hours', async ([job]) => {
   await findBusinessHours(job.data.organizationId)
 })
+
+// Contact details from Your business, the same way.
+await boss.work<{ organizationId: string }>(
+  'contact-details',
+  async ([job]) => {
+    await findContactDetails(job.data.organizationId)
+  },
+)
 
 await boss.work<{ agentId?: string }>(
   'whatsapp-poll',

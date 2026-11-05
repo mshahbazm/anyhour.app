@@ -15,6 +15,7 @@ import removeTeamMember from './remove-team-member/SKILL.md' with { type: 'text'
 import supportInbox from './support-inbox/SKILL.md' with { type: 'text' }
 import reviewKnowledge from './review-knowledge/SKILL.md' with { type: 'text' }
 import visitorActivity from './visitor-activity/SKILL.md' with { type: 'text' }
+import whatsappQuestion from './whatsapp-question/SKILL.md' with { type: 'text' }
 import workspaceSettings from './workspace-settings/SKILL.md' with { type: 'text' }
 
 /**
@@ -41,6 +42,7 @@ const sources = [
   botProfile,
   botGoal,
   memberRules,
+  whatsappQuestion,
   goLive,
   visitorActivity,
   supportInbox,

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../workspace/api'
 import type { iKnowledgeSource } from '../workspace/types'
 import type { tBusinessHours } from './openingHours'
+import type { iContactDetails } from './contactDetails'
 import { displayUrl } from './sourceState'
 
 // Mirrors iBusinessPage in packages/api/src/services/workspace/businessProfile.ts.
@@ -14,6 +15,8 @@ export interface iBusinessProfile {
   /** Opening hours read from Your business, Monday first; null until found. */
   businessHours: tBusinessHours | null
   timeZone: string | null
+  /** WhatsApp, phone, email and address read from Your business. */
+  contactDetails: iContactDetails | null
 }
 
 export function useBusinessProfile(base: string | null, version: string) {

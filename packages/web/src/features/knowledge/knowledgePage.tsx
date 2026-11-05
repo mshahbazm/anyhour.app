@@ -20,6 +20,8 @@ import { DecisionsSection } from './decisionsSection'
 import { GapsSection } from './gapsSection'
 import { NotesSection } from './notesSection'
 import { OpeningHours } from './openingHours'
+import { ContactDetails } from './contactDetails'
+import type { iContactDetails } from './contactDetails'
 import type { tBusinessHours } from './openingHours'
 import { TellBox } from './tellBox'
 import { useKnowledgeNotes } from './useKnowledgeNotes'
@@ -51,6 +53,8 @@ interface iKnowledgePageProps {
   openingHours?: {
     businessHours: tBusinessHours | null
     timeZone: string | null
+    /** Read from Your business too; shown only when found. */
+    contactDetails?: iContactDetails | null
   } | null
 }
 
@@ -376,6 +380,9 @@ export function KnowledgePage(props: iKnowledgePageProps) {
                 : undefined
             }
           />
+        )}
+        {props.base && props.openingHours && (
+          <ContactDetails details={props.openingHours.contactDetails ?? null} />
         )}
         <GapsSection
           gaps={props.gaps ?? []}

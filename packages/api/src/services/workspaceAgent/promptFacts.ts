@@ -10,6 +10,7 @@ import { ownerCatalogueLines, sourceCatalogue } from '../knowledge/catalogue'
 import { openKnowledgeGaps } from '../knowledge/gaps/knowledgeGaps'
 import { listInstalls } from '../widget/installs'
 import { listMemberRules } from '../memberRules/rules'
+import { knownWhatsappNumber } from '../whatsappQuestion/knownNumber'
 import type { iMemberRule } from '../../types/memberRule.types'
 import type { iKnowledgeOverview } from '../../config/knowledgeOverview.config'
 
@@ -52,6 +53,8 @@ export interface iBotFacts {
   channels?: Array<{ channel: string; where: string | null }>
   /** Made in the last few days; its getting-started skill is listed. */
   isNew?: boolean
+  /** The WhatsApp question is on, but no WhatsApp number is known. */
+  whatsappNumberMissing?: boolean
 }
 
 export interface iWorkspaceFacts {
@@ -95,6 +98,7 @@ export async function loadBotFacts(
       createdAt: assistant.createdAt,
       overview: assistant.knowledgeOverview,
       organizationId: assistant.organizationId,
+      appearance: assistant.appearance,
     })
     .from(assistant)
     .where(eq(assistant.id, chat.assistantId))
@@ -108,6 +112,9 @@ export async function loadBotFacts(
   const channels = await answeredChannels(chat.assistantId)
   const catalogue = await sourceCatalogue(reader)
   const rules = await listMemberRules(bot.organizationId)
+  const whatsappNumberMissing = bot.appearance.whatsapp
+    ? !(await knownWhatsappNumber(bot.organizationId)).number
+    : false
   return {
     catalogue: ownerCatalogueLines(catalogue),
     installs: installs.map(({ origin, status }) => ({ origin, status })),
@@ -135,6 +142,7 @@ export async function loadBotFacts(
     sources: catalogue.sources.length + catalogue.more,
     rules,
     overview: bot.overview,
+    whatsappNumberMissing,
   }
 }
 

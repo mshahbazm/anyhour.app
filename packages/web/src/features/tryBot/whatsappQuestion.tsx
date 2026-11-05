@@ -7,6 +7,7 @@ import type {
   iAssistant,
   iWhatsappQuestion,
   tWhatsappApproach,
+  tWhatsappNumberSource,
 } from '../workspace/types'
 
 export const whatsappQuestionLength = 80
@@ -18,17 +19,16 @@ const approaches: Array<{ id: tWhatsappApproach; label: string }> = [
   { id: 'qualifyFirst', label: 'Qualify them first' },
 ]
 
-type tNumberSource = 'channel' | 'knowledge' | null
-
 /** Mirrors GET …/whatsapp-question/number. */
 interface iNumberLookup {
   number: string | null
-  source: tNumberSource
+  source: tWhatsappNumberSource | null
 }
 
-const sourceHints: Record<'channel' | 'knowledge', string> = {
+const sourceHints: Record<tWhatsappNumberSource, string> = {
   channel: 'From your WhatsApp channel',
-  knowledge: 'Found on your website',
+  note: 'From your notes',
+  website: 'Found on your website',
 }
 
 /** What the panel starts from: the saved question, or a found number. */
@@ -75,21 +75,22 @@ export function WhatsappPanel(props: {
   onCancel: () => void
 }) {
   const { saved, found } = props.draft
+  // The number is a fact in Your business; this shows the one it shares.
+  const known = saved
+    ? { number: saved.number, source: saved.numberSource }
+    : found
+  const knownText = known.number ? `+${known.number.replace(/^\+/, '')}` : ''
   const [question, setQuestion] = useState(saved?.question ?? defaultQuestion)
-  const [number, setNumber] = useState(
-    saved
-      ? `+${saved.number}`
-      : found.number
-        ? `+${found.number.replace(/^\+/, '')}`
-        : '',
-  )
+  const [number, setNumber] = useState(knownText)
   const [approach, setApproach] = useState<iWhatsappQuestion['approach']>(
     saved?.approach ?? 'quickQuestion',
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const changed = number.trim() !== knownText
   const hint =
-    !saved && found.number && found.source ? sourceHints[found.source] : null
+    known.number && known.source && !changed ? sourceHints[known.source] : null
+  const needsNumber = Boolean(saved && !saved.number)
   const options =
     saved?.approach === 'custom'
       ? [...approaches, { id: 'custom' as const, label: 'Your own rule' }]
@@ -105,10 +106,11 @@ export function WhatsappPanel(props: {
       const path = whatsappPath(props.organizationId, props.botId)
       await api(path, {
         method: 'PUT',
+        // Only a number the owner typed: it's saved to Your business.
         body: JSON.stringify({
           question: question.trim(),
-          number: number.trim(),
           approach,
+          ...(changed ? { number: number.trim() } : {}),
         }),
       })
       props.onSaved(
@@ -129,18 +131,20 @@ export function WhatsappPanel(props: {
         <Input
           value={question}
           maxLength={whatsappQuestionLength}
-          autoFocus
+          autoFocus={!needsNumber}
           onChange={(event) => setQuestion(event.target.value)}
         />
       </label>
       <label className="whatsappField">
         <span>
-          {hint || saved
+          {known.number
             ? 'WhatsApp number'
             : 'What’s your WhatsApp number or link?'}
         </span>
+        {needsNumber && <small>Add your WhatsApp number</small>}
         <Input
           value={number}
+          autoFocus={needsNumber}
           placeholder="+44 7700 900123 or wa.me/447700900123"
           maxLength={200}
           inputMode="tel"

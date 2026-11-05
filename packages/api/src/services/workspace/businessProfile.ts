@@ -4,6 +4,7 @@ import { knowledgeSource, organization } from '../../db/schema'
 import { businessOwner, ownedBy } from '../knowledge/owner'
 import { ApiError } from '../http/apiError'
 import type { tBusinessHours } from '../../types/businessHours.types'
+import type { iContactDetails } from '../../types/contactDetails.types'
 
 export interface iBusinessProfile {
   name: string
@@ -13,10 +14,12 @@ export interface iBusinessProfile {
 }
 
 // GET .../business: the profile plus the opening hours read from Your
-// business (Monday first; null until found) and their IANA time zone.
+// business (Monday first; null until found), their IANA time zone and the
+// contact details read from it (null until read).
 export interface iBusinessPage extends iBusinessProfile {
   businessHours: tBusinessHours | null
   timeZone: string | null
+  contactDetails: iContactDetails | null
 }
 
 function homeKey(url: string | null) {
@@ -40,6 +43,7 @@ export async function getBusinessProfile(
       about: organization.businessAbout,
       businessHours: organization.businessHours,
       timeZone: organization.timeZone,
+      contactDetails: organization.contactDetails,
     })
     .from(organization)
     .where(eq(organization.id, organizationId))
@@ -63,6 +67,7 @@ export async function getBusinessProfile(
   const hours = {
     businessHours: workspace.businessHours,
     timeZone: workspace.timeZone,
+    contactDetails: workspace.contactDetails,
   }
   const told = {
     name: workspace.name,
