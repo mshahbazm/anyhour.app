@@ -1,5 +1,5 @@
 import { startSpiderStandIn } from '../fixtures/rolesProviders'
-import { createWithOwnWebsite } from '../fixtures/ownWebsite'
+import { addWebsite, createTestWorkspace } from '../fixtures/ownWebsite'
 import { orgOf } from '../fixtures/knowledgeOwner'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
@@ -223,7 +223,8 @@ test('Website pages pass through preparation and embedding via the live API and 
     const { loadTestCredentials } =
       await import('../../scripts/localSeedSupport')
     const credentials = await loadTestCredentials('integration')
-    const base = `${apiOrigin}/api/organizations/${credentials.organizationId}`
+    const workspace = await createTestWorkspace(credentials, 'Harbour Plumbing')
+    const base = `${apiOrigin}/api/organizations/${workspace.organizationId}`
     const request = (path: string, method = 'GET', body?: object) =>
       fetch(`${base}${path}`, {
         method,
@@ -239,22 +240,14 @@ test('Website pages pass through preparation and embedding via the live API and 
       env: childEnv,
       stdio: ['ignore', 'ignore', 'inherit'],
     })
-    const createdResponse = await createWithOwnWebsite(
-      (path, body) => request(`/assistants${path}`, 'POST', body),
-      { name: 'Harbour Plumbing', websiteUrl: `${siteUrl}/` },
+    const created = await addWebsite(
+      (path, body) => request(path, 'POST', body),
+      { websiteUrl: `${siteUrl}/` },
     )
-    assert.equal(createdResponse.status, 201)
-    const created = (await createdResponse.json()) as {
-      assistant: { id: string }
-      source: { id: string }
-      indexRun: { id: string }
-    }
-    const assistantId = created.assistant.id
+    const assistantId = workspace.assistantId
     async function waitForRun(runId: string) {
       for (let attempt = 0; attempt < 140; attempt += 1) {
-        const runs = (await (
-          await request(`/assistants/${assistantId}/runs`)
-        ).json()) as Array<{
+        const runs = (await (await request('/business/runs')).json()) as Array<{
           id: string
           status: string
           phase: string
@@ -270,7 +263,7 @@ test('Website pages pass through preparation and embedding via the live API and 
     }
     const first = await waitForRun(created.indexRun.id)
     assert.equal(first.status, 'completed')
-    assert.equal(first.crawlProvider, 'http')
+    assert.equal(first.crawlProvider, 'browser')
     assert.equal(first.indexedCount, 4)
     assert(jevCalls > 0, 'Jev did not classify ambiguous content')
     const { db } = await import('../../src/db')
@@ -311,7 +304,7 @@ test('Website pages pass through preparation and embedding via the live API and 
     const copyReadsBefore = copyReads()
 
     const unchangedResponse = await request(
-      `/assistants/${assistantId}/sources/${created.source.id}/runs`,
+      `/business/sources/${created.source.id}/runs`,
       'POST',
     )
     assert.equal(unchangedResponse.status, 202)
@@ -325,7 +318,7 @@ test('Website pages pass through preparation and embedding via the live API and 
 
     version = 2
     const changedResponse = await request(
-      `/assistants/${assistantId}/sources/${created.source.id}/runs`,
+      `/business/sources/${created.source.id}/runs`,
       'POST',
     )
     assert.equal(changedResponse.status, 202)

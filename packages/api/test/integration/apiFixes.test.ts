@@ -471,13 +471,13 @@ test('API pagination, contact capture and request-scoped chat', async () => {
       },
       { path: '/leads', ids: leads.map((x) => x.id), foreign: foreignLead.id },
       {
-        path: `/assistants/${bot.id}/conversations`,
+        path: '/conversations',
         ids: chats.map((x) => x.id),
         foreign: foreignChat.id,
       },
     ]
     for (const item of cases) {
-      const first = await fetch(`${apiBase}${item.path}`, {
+      const first = await fetch(`${apiBase}${item.path}?limit=100`, {
         headers: ownerHeaders,
       })
       assert.equal(first.status, 200)

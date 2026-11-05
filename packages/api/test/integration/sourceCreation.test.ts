@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { test } from 'bun:test'
-import { eq, like, or, sql } from 'drizzle-orm'
-import { orgOf } from '../fixtures/knowledgeOwner'
+import { eq, sql } from 'drizzle-orm'
+import { createTestWorkspace } from '../fixtures/ownWebsite'
 
 test('HTTP source creation commits its initial run atomically and survives queue outage', async () => {
   const databaseUrl = process.env.DATABASE_URL
@@ -63,21 +63,15 @@ test('HTTP source creation commits its initial run atomically and survives queue
   const { app } = await import('../../src/app')
   handle = (request) => app.fetch(request)
   const { db } = await import('../../src/db')
-  const { assistant, knowledgeSource, indexRun } =
-    await import('../../src/db/schema')
+  const { knowledgeSource, indexRun } = await import('../../src/db/schema')
   const { getBoss } = await import('../../src/services/queue/boss')
   const boss = await getBoss()
   const send = boss.send
   const fixtureName = `creation_${crypto.randomUUID().replaceAll('-', '_')}`
   const trigger = `fail_${fixtureName}`
-  // A new AI team member's website goes to Your business, shared by the test
-  // workspace, so each run uses its own site.
   const site = `https://atomic-${crypto.randomUUID().slice(0, 8)}.example`
-  const [owner] = await db
-    .insert(assistant)
-    .values({ organizationId: credentials.organizationId, name: fixtureName })
-    .returning()
-  const base = `${origin}/api/organizations/${credentials.organizationId}/assistants`
+  const workspace = await createTestWorkspace(credentials, fixtureName)
+  const base = `${origin}/api/organizations/${workspace.organizationId}/business`
   const headers = {
     Cookie: credentials.accounts.owner.cookie,
     Origin: 'http://localhost:3000',
@@ -96,7 +90,7 @@ test('HTTP source creation commits its initial run atomically and survives queue
         type: 'text/plain',
       }),
     )
-    return fetch(`${base}/${owner.id}/uploads`, {
+    return fetch(`${base}/uploads`, {
       method: 'POST',
       headers,
       body: form,
@@ -109,12 +103,11 @@ test('HTTP source creation commits its initial run atomically and survives queue
     await db.execute(sql.raw(`DROP FUNCTION IF EXISTS "${trigger}"()`))
   }
   try {
-    // Scoped to this fixture's assistants; failing the run INSERT must roll back
-    // source/assistant creation, rather than leave unscheduled sources behind.
+    // Scoped to this fixture's workspace; failing the run INSERT must roll
+    // back source creation, rather than leave unscheduled sources behind.
     await db.execute(
       sql.raw(`CREATE FUNCTION "${trigger}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
-      IF EXISTS (SELECT 1 FROM assistant WHERE id = NEW.assistant_id AND name = '${fixtureName}')
-        OR EXISTS (SELECT 1 FROM knowledge_source WHERE id = NEW.target_source_id AND input_url LIKE '${site}%') THEN
+      IF NEW.organization_id = '${workspace.organizationId}' THEN
         RAISE EXCEPTION 'Injected initial run persistence failure';
       END IF;
       RETURN NEW;
@@ -127,16 +120,16 @@ test('HTTP source creation commits its initial run atomically and survives queue
     )
     assert.equal(
       (
-        await post('', {
-          name: fixtureName,
-          websiteUrl: `${site}/`,
+        await post('/sources', {
+          kind: 'website',
+          url: `${site}/`,
         })
       ).status,
       500,
     )
     assert.equal(
       (
-        await post(`/${owner.id}/sources`, {
+        await post('/sources', {
           kind: 'webPage',
           url: `${site}/page`,
         })
@@ -145,21 +138,11 @@ test('HTTP source creation commits its initial run atomically and survives queue
     )
     assert.equal((await upload()).status, 500)
     assert.equal(
-      (await db.select().from(assistant).where(eq(assistant.name, fixtureName)))
-        .length,
-      1,
-    )
-    assert.equal(
       (
         await db
           .select()
           .from(knowledgeSource)
-          .where(
-            or(
-              eq(knowledgeSource.organizationId, orgOf(owner.id)),
-              like(knowledgeSource.inputUrl, `${site}%`),
-            ),
-          )
+          .where(eq(knowledgeSource.organizationId, workspace.organizationId))
       ).length,
       0,
     )
@@ -170,11 +153,8 @@ test('HTTP source creation commits its initial run atomically and survives queue
       throw new Error('Injected queue outage')
     }) as typeof boss.send
     const responses = [
-      await post('', {
-        name: fixtureName,
-        websiteUrl: `${site}/`,
-      }),
-      await post(`/${owner.id}/sources`, {
+      await post('/sources', { kind: 'website', url: `${site}/` }),
+      await post('/sources', {
         kind: 'webPage',
         url: `${site}/page`,
       }),
@@ -209,35 +189,20 @@ test('HTTP source creation commits its initial run atomically and survives queue
   } finally {
     boss.send = send
     await dropFailure()
-    const owners = await db
+    const sources = await db
       .select()
-      .from(assistant)
-      .where(eq(assistant.name, fixtureName))
-    for (const item of owners) {
-      const sources = await db
-        .select()
-        .from(knowledgeSource)
-        .where(eq(knowledgeSource.organizationId, orgOf(item.id)))
-      const { deleteStoredObject } =
-        await import('../../src/services/knowledge/r2Storage')
-      for (const source of sources)
-        if (source.objectKey) await deleteStoredObject(source.objectKey)
-      await db
-        .delete(indexRun)
-        .where(eq(indexRun.organizationId, orgOf(item.id)))
-      await db
-        .delete(knowledgeSource)
-        .where(eq(knowledgeSource.organizationId, orgOf(item.id)))
-      await db.delete(assistant).where(eq(assistant.id, item.id))
-    }
-    const business = await db
-      .select({ id: knowledgeSource.id })
       .from(knowledgeSource)
-      .where(like(knowledgeSource.inputUrl, `${site}%`))
-    for (const source of business) {
-      await db.delete(indexRun).where(eq(indexRun.targetSourceId, source.id))
-      await db.delete(knowledgeSource).where(eq(knowledgeSource.id, source.id))
-    }
+      .where(eq(knowledgeSource.organizationId, workspace.organizationId))
+    const { deleteStoredObject } =
+      await import('../../src/services/knowledge/r2Storage')
+    for (const source of sources)
+      if (source.objectKey) await deleteStoredObject(source.objectKey)
+    await db
+      .delete(indexRun)
+      .where(eq(indexRun.organizationId, workspace.organizationId))
+    await db
+      .delete(knowledgeSource)
+      .where(eq(knowledgeSource.organizationId, workspace.organizationId))
     await boss.stop()
     server.stop(true)
     storage.stop(true)

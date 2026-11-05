@@ -60,7 +60,22 @@ test('workspace helper and draft preview preserve user authorization and isolate
     organization,
     member,
   } = await import('../../src/db/schema')
-  const org = credentials.organizationId
+  // A workspace of its own with its one AI, as sign-up leaves it.
+  const org = crypto.randomUUID()
+  await db
+    .insert(organization)
+    .values({ id: org, name: 'Workspace agent fixture', slug: org })
+  for (const role of ['owner', 'admin', 'member'] as const)
+    await db.insert(member).values({
+      id: crypto.randomUUID(),
+      userId: credentials.accounts[role].userId,
+      organizationId: org,
+      role,
+    })
+  const [ai] = await db
+    .insert(assistant)
+    .values({ organizationId: org, name: 'Workspace test bot' })
+    .returning()
   type tRole = 'owner' | 'admin' | 'member' | 'outsider'
   function headers(role: tRole) {
     return {
@@ -80,17 +95,14 @@ test('workspace helper and draft preview preserve user authorization and isolate
     assert.equal(response.status, expected, await response.clone().text())
     return (await response.json()) as T
   }
-  async function newChat(
-    role: tRole,
-    organizationId: string | null = org,
-    assistantId: string | null = null,
-  ) {
+  // In a workspace: the person's one thread with its AI. Without one: a
+  // new chat.
+  async function newChat(role: tRole, organizationId: string | null = org) {
     return json<{ id: string }>(
       await request(role, '/api/workspace-agent/chats', 'POST', {
         organizationId,
-        assistantId,
       }),
-      201,
+      organizationId ? 200 : 201,
     )
   }
   function send(
@@ -164,12 +176,8 @@ test('workspace helper and draft preview preserve user authorization and isolate
       'owner',
       ownerChat.id,
       [
-        { name: 'read_skill', arguments: { name: 'onboarding' } },
+        { name: 'read_skill', arguments: { name: 'getting-started' } },
         { name: 'get_context', arguments: {} },
-        {
-          name: 'create_assistant',
-          arguments: { name: 'Workspace test bot', job: null },
-        },
       ],
       clientId,
     )
@@ -181,41 +189,16 @@ test('workspace helper and draft preview preserve user authorization and isolate
         `/api/workspace-agent/chats?organizationId=${org}`,
       ),
     )
-    assert(
-      titledChats
-        .find((item) => item.id === ownerChat.id)
-        ?.title.startsWith('fixture:'),
-      'Chat title comes from its first user message',
+    // The thread with the AI keeps its own title.
+    assert.equal(
+      titledChats.find((item) => item.id === ownerChat.id)?.title,
+      'Chat',
     )
     let saved = await history('owner', ownerChat.id)
-    let botId = saved.chat.assistantId
-    // Local integration workspaces may already contain bots. Explicitly create a fresh draft for isolation.
-    if (!botId) {
-      const created = await json<{
-        assistant: { id: string }
-        source: null
-        indexRun: null
-      }>(
-        await request('owner', `/api/organizations/${org}/assistants`, 'POST', {
-          name: 'Document-first test',
-        }),
-        201,
-      )
-      assert.equal(created.source, null)
-      assert.equal(created.indexRun, null)
-      botId = created.assistant.id
-      assert(
-        (
-          await (
-            await send('owner', ownerChat.id, [
-              { name: 'select_assistant', arguments: { assistantId: botId } },
-            ])
-          ).text()
-        ).includes('event: done'),
-      )
-    }
+    const botId = saved.chat.assistantId
+    assert.equal(botId, ai.id, 'The thread talks with the workspace AI')
     assert.equal((await send('owner', ownerChat.id, [], clientId)).status, 409)
-    const memberChat = await newChat('member', org, botId)
+    const memberChat = await newChat('member')
     assert(
       (
         await (
@@ -225,7 +208,6 @@ test('workspace helper and draft preview preserve user authorization and isolate
               arguments: {
                 kind: 'webPage',
                 url: 'https://example.com/denied',
-                scope: 'mine',
               },
             },
           ])
@@ -235,10 +217,11 @@ test('workspace helper and draft preview preserve user authorization and isolate
     const denied = await history('member', memberChat.id)
     assert.equal(denied.actions.at(-1)?.status, 'failed')
     assert.equal(denied.actions.at(-1)?.result.error, 'permission_denied')
+    const businessBase = `/api/organizations/${org}/business`
     const productBase = `/api/organizations/${org}/assistants/${botId}`
     assert.equal(
       (
-        await request('member', `${productBase}/sources`, 'POST', {
+        await request('member', `${businessBase}/sources`, 'POST', {
           kind: 'webPage',
           url: 'https://example.com/denied',
         })
@@ -256,7 +239,7 @@ test('workspace helper and draft preview preserve user authorization and isolate
       Origin: 'http://localhost:3000',
     }
     const uploaded = await json<{ source: { id: string } }>(
-      await fetch(`${origin}${productBase}/uploads`, {
+      await fetch(`${origin}${businessBase}/uploads`, {
         method: 'POST',
         headers: uploadHeaders,
         body: formData,
@@ -271,7 +254,7 @@ test('workspace helper and draft preview preserve user authorization and isolate
     )
     assert.equal(
       (
-        await fetch(`${origin}${productBase}/uploads`, {
+        await fetch(`${origin}${businessBase}/uploads`, {
           method: 'POST',
           headers: uploadHeaders,
           body: invalid,
@@ -298,8 +281,12 @@ test('workspace helper and draft preview preserve user authorization and isolate
       404,
     )
     assert.equal(
-      (await request('owner', `${productBase}/conversations/${preview.id}`))
-        .status,
+      (
+        await request(
+          'owner',
+          `/api/organizations/${org}/conversations/${preview.id}`,
+        )
+      ).status,
       404,
     )
     assert.equal(
@@ -361,7 +348,7 @@ test('workspace helper and draft preview preserve user authorization and isolate
       /Preview conversations cannot create leads/,
     )
     const visitorList = await json<Array<{ id: string }>>(
-      await request('owner', `${productBase}/conversations`),
+      await request('owner', `/api/organizations/${org}/conversations`),
     )
     assert(!visitorList.some((item) => item.id === preview.id))
     assert.equal(
@@ -435,7 +422,7 @@ test('workspace helper and draft preview preserve user authorization and isolate
         ).idealCustomerProfile,
         profile,
       )
-      const memberProfile = await newChat('member', org, botId)
+      const memberProfile = await newChat('member')
       await (
         await send('member', memberProfile.id, [
           { name: 'set_ideal_customer_profile', arguments: { text: 'Anyone' } },
@@ -504,15 +491,10 @@ test('workspace helper and draft preview preserve user authorization and isolate
     await (
       await send('outsider', onboarding.id, [
         { name: 'create_workspace', arguments: { name: 'Fixture onboarding' } },
-        {
-          name: 'create_assistant',
-          arguments: { name: 'My first bot', job: null },
-        },
       ])
     ).text()
     const onboarded = await history('outsider', onboarding.id)
     assert(onboarded.chat.organizationId)
-    assert(onboarded.chat.assistantId)
     createdOrgs.push(onboarded.chat.organizationId)
     const memberships = await db
       .select()
@@ -525,7 +507,7 @@ test('workspace helper and draft preview preserve user authorization and isolate
       )
     assert.equal(memberships[0].role, 'owner')
     // Revoke a session after a turn was admitted, before the model's tool executes.
-    const adminChat = await newChat('admin', org, botId)
+    const adminChat = await newChat('admin')
     workspaceFixture.onRequest = async () => {
       workspaceFixture.onRequest = undefined
       await db
@@ -539,7 +521,6 @@ test('workspace helper and draft preview preserve user authorization and isolate
           arguments: {
             kind: 'webPage',
             url: 'https://example.com/revoked',
-            scope: 'mine',
           },
         },
       ])

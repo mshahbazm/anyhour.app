@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { test } from 'bun:test'
 import { and, eq, inArray } from 'drizzle-orm'
-import { createWithOwnWebsite } from '../fixtures/ownWebsite'
+import { addWebsite, createTestWorkspace } from '../fixtures/ownWebsite'
 import { orgOf } from '../fixtures/knowledgeOwner'
 
 // A new website's articles, listings and other-language copies become exclude
@@ -117,7 +117,8 @@ test('a new website skips its articles, and removing the rule reads them', async
   assert.equal((await once(seed, 'exit'))[0], 0)
   const { loadTestCredentials } = await import('../../scripts/localSeedSupport')
   const credentials = await loadTestCredentials('integration')
-  const workspace = `${origin}/api/organizations/${credentials.organizationId}`
+  const testWorkspace = await createTestWorkspace(credentials, 'Scope test')
+  const workspace = `${origin}/api/organizations/${testWorkspace.organizationId}`
   const call = (path: string, method = 'GET', body?: unknown) =>
     fetch(`${workspace}${path}`, {
       method,
@@ -131,18 +132,11 @@ test('a new website skips its articles, and removing the rule reads them', async
   const startedAt = new Date()
   let assistantId: string | undefined
   try {
-    const created = await createWithOwnWebsite(
-      (path, body) => call(`/assistants${path}`, 'POST', body),
-      { name: 'Scope test', websiteUrl: site },
-    )
-    assert.equal(created.status, 201, await created.clone().text())
-    const made = (await created.json()) as {
-      assistant: { id: string }
-      source: { id: string }
-      indexRun: { id: string }
-    }
-    assistantId = made.assistant.id
-    const sourcePath = `/assistants/${assistantId}/sources/${made.source.id}`
+    const made = await addWebsite((path, body) => call(path, 'POST', body), {
+      websiteUrl: site,
+    })
+    assistantId = testWorkspace.assistantId
+    const sourcePath = `/business/sources/${made.source.id}`
 
     // What the worker does first with a new website's run.
     await startCrawl(made.indexRun.id, made.source.id)

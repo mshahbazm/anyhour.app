@@ -345,13 +345,11 @@ test('WhatsApp owner alerts: link, lead alerts, free text, broken key', async ()
     assert.equal((await request('outsider', '/whatsapp')).status, 403)
     assert.deepEqual(await json(await request('member', '/whatsapp')), {
       agents: [],
-      limit: 5,
     })
 
     // A key WhatsApp refuses isn't stored.
     const refused = await request('owner', '/whatsapp', 'POST', {
       token: 'not-the-agent-key',
-      assistantId: bot.id,
     })
     assert.equal(refused.status, 422)
     assert.equal(await agentRow(), undefined)

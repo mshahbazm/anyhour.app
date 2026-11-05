@@ -17,7 +17,7 @@ mock.module('resend', () => ({
     }
   },
 }))
-import { eq, inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import {
   installWorkspaceFixture,
   workspaceFixture,
@@ -86,6 +86,8 @@ test('chat choices, workspace settings and team tools enforce permissions and re
       organizationId: org,
       role,
     })
+  // The workspace's one AI, as sign-up leaves it.
+  await db.insert(assistant).values({ organizationId: org, name: 'Goal bot' })
   type tRole = 'owner' | 'admin' | 'member' | 'outsider'
   function headers(role: tRole) {
     return {
@@ -122,17 +124,14 @@ test('chat choices, workspace settings and team tools enforce permissions and re
     assert.equal(response.status, expected, await response.clone().text())
     return (await response.json()) as T
   }
-  async function newChat(
-    role: tRole,
-    organizationId: string | null = org,
-    assistantId: string | null = null,
-  ) {
+  // In a workspace: the person's one thread with its AI. Without one: a
+  // new chat.
+  async function newChat(role: tRole, organizationId: string | null = org) {
     return json<{ id: string }>(
       await request(role, '/api/workspace-agent/chats', 'POST', {
         organizationId,
-        assistantId,
       }),
-      201,
+      organizationId ? 200 : 201,
     )
   }
   function send(
@@ -235,10 +234,6 @@ test('chat choices, workspace settings and team tools enforce permissions and re
     )
     let saved = await turns('owner', ownerChat.id, [
       { name: 'get_context', arguments: {} },
-      {
-        name: 'create_assistant',
-        arguments: { name: 'Goal bot', job: null },
-      },
       {
         name: 'set_bot_goal',
         arguments: {
@@ -449,17 +444,6 @@ test('chat choices, workspace settings and team tools enforce permissions and re
     saved = await turns('outsider', newUserChat.id, [
       { name: 'get_profile', arguments: {} },
       { name: 'create_workspace', arguments: { name: 'Document business' } },
-      {
-        name: 'create_assistant',
-        arguments: { name: 'Document bot', job: null },
-      },
-      {
-        name: 'set_bot_goal',
-        arguments: {
-          goal: 'answers',
-          notes: 'No website yet; help me decide later.',
-        },
-      },
     ])
     onboardingOrg = saved.chat.organizationId
     assert(onboardingOrg)
@@ -510,8 +494,8 @@ test('chat choices, workspace settings and team tools enforce permissions and re
       embedding: Array.from({ length: 384 }, (_, i) => (i === 0 ? 1 : 0)),
       embeddingModel: 'text-embedding-3-small',
     })
-    const factsChat = await newChat('owner', org, botId)
-    const notesPath = `${botPath}/notes`
+    const factsChat = await newChat('owner', org)
+    const notesPath = `/api/organizations/${org}/business/notes`
     const blogNote = async () =>
       (
         await json<
@@ -579,10 +563,8 @@ test('chat choices, workspace settings and team tools enforce permissions and re
           .from(assistant)
           .where(eq(assistant.organizationId, id))
       ).map((bot) => bot.id)
+      await db.delete(aiUsageEvent).where(eq(aiUsageEvent.organizationId, id))
       if (bots.length) {
-        await db
-          .delete(aiUsageEvent)
-          .where(inArray(aiUsageEvent.assistantId, bots))
         await db
           .update(knowledgeSource)
           .set({ parentId: null })

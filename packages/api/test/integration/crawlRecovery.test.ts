@@ -1,5 +1,5 @@
 import { startSpiderStandIn } from '../fixtures/rolesProviders'
-import { createWithOwnWebsite } from '../fixtures/ownWebsite'
+import { addWebsite, createTestWorkspace } from '../fixtures/ownWebsite'
 import { orgOf } from '../fixtures/knowledgeOwner'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
@@ -153,7 +153,8 @@ test('Reading follows deep links and worker restart repairs durable checkpoints'
     Origin: 'http://localhost:3000',
     'Content-Type': 'application/json',
   }
-  const base = `${apiOrigin}/api/organizations/${credentials.organizationId}`
+  const workspace = await createTestWorkspace(credentials, 'Deep crawl fixture')
+  const base = `${apiOrigin}/api/organizations/${workspace.organizationId}`
   let worker: ReturnType<typeof spawn> | undefined
   let fixtureAssistantId: string | undefined
   const startWorker = () => {
@@ -170,27 +171,21 @@ test('Reading follows deep links and worker restart repairs durable checkpoints'
     }
   }
   try {
-    const response = await createWithOwnWebsite(
+    const created = await addWebsite(
       (path, body) =>
-        fetch(`${base}/assistants${path}`, {
+        fetch(`${base}${path}`, {
           method: 'POST',
           headers,
           body: JSON.stringify(body),
         }),
-      { name: 'Deep crawl fixture', websiteUrl: fixtureOrigin },
+      { websiteUrl: fixtureOrigin },
     )
-    assert.equal(response.status, 201)
-    const created = (await response.json()) as {
-      assistant: { id: string }
-      source: { id: string }
-      indexRun: { id: string }
-    }
-    const botId = created.assistant.id
+    const botId = workspace.assistantId
     fixtureAssistantId = botId
     const rootId = created.source.id
     assert.equal(
       (
-        await fetch(`${base}/assistants/${botId}/sources/${rootId}`, {
+        await fetch(`${base}/business/sources/${rootId}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({ excludePaths: ['/excluded'] }),
@@ -201,7 +196,7 @@ test('Reading follows deep links and worker restart repairs durable checkpoints'
     async function waitForRun(runId: string) {
       // A restarted worker may need its 60-second sweep after singleton suppression.
       for (let attempt = 0; attempt < 1000; attempt++) {
-        const response = await fetch(`${base}/assistants/${botId}/runs`, {
+        const response = await fetch(`${base}/business/runs`, {
           headers,
         })
         assert.equal(response.status, 200)
@@ -234,10 +229,10 @@ test('Reading follows deep links and worker restart repairs durable checkpoints'
     assert.equal(externalGets, 0)
 
     includeNewLink = true
-    const refresh = await fetch(
-      `${base}/assistants/${botId}/sources/${rootId}/runs`,
-      { method: 'POST', headers },
-    )
+    const refresh = await fetch(`${base}/business/sources/${rootId}/runs`, {
+      method: 'POST',
+      headers,
+    })
     const refreshRun = (await refresh.json()) as { id: string }
     const second = await waitForRun(refreshRun.id)
     console.info('Crawl recovery: initial crawl and recrawl finished')
@@ -380,7 +375,7 @@ test('Reading follows deep links and worker restart repairs durable checkpoints'
     await stopWorker()
 
     const publicRun = async (id: string) => {
-      const response = await fetch(`${base}/assistants/${botId}/runs`, {
+      const response = await fetch(`${base}/business/runs`, {
         headers,
       })
       assert.equal(response.status, 200)

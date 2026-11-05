@@ -1,4 +1,5 @@
 import { orgOf } from '../fixtures/knowledgeOwner'
+import { createTestWorkspace } from '../fixtures/ownWebsite'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
@@ -119,21 +120,19 @@ test('notes are live immediately, ask before overriding the website, and follow 
   assert.equal((await once(seed, 'exit'))[0], 0)
   const { loadTestCredentials } = await import('../../scripts/localSeedSupport')
   const credentials = await loadTestCredentials('integration')
-  const [owner] = await db
-    .insert(assistant)
-    .values({
-      organizationId: credentials.organizationId,
-      name: 'Knowledge notes regression',
-    })
-    .returning()
-  const base = `${origin}/api/organizations/${credentials.organizationId}/assistants/${owner.id}`
-  const request = (
+  const workspace = await createTestWorkspace(
+    credentials,
+    'Knowledge notes regression',
+  )
+  const owner = { id: workspace.assistantId }
+  const workspaceBase = `${origin}/api/organizations/${workspace.organizationId}`
+  const call = (
     path: string,
-    method = 'GET',
-    body?: unknown,
+    method: string,
+    body: unknown,
     cookie = credentials.accounts.owner.cookie,
   ) =>
-    fetch(`${base}${path}`, {
+    fetch(`${workspaceBase}${path}`, {
       method,
       headers: {
         Cookie: cookie,
@@ -142,9 +141,19 @@ test('notes are live immediately, ask before overriding the website, and follow 
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     })
+  // Your business (notes, sources, decisions); `aiRequest` reaches the AI's
+  // own routes (fact checks, search, preview).
+  const request = (
+    path: string,
+    method = 'GET',
+    body?: unknown,
+    cookie = credentials.accounts.owner.cookie,
+  ) => call(`/business${path}`, method, body, cookie)
+  const aiRequest = (path: string, method = 'GET', body?: unknown) =>
+    call(`/assistants/${owner.id}${path}`, method, body)
   const search = async (question: string) =>
     (await (
-      await request(`/knowledge/search?q=${encodeURIComponent(question)}`)
+      await aiRequest(`/knowledge/search?q=${encodeURIComponent(question)}`)
     ).json()) as Array<{ sourceId: string; origin: string; text: string }>
   try {
     const [site] = await db
@@ -192,12 +201,9 @@ test('notes are live immediately, ask before overriding the website, and follow 
     )
 
     // A note is searchable as the owner's word the moment it is saved.
-    // Only this bot's own notes, so nothing reaches the shared test
-    // workspace's Your business (knowledgeLayers covers the default).
     const hoursResponse = await request('/notes', 'POST', {
       title: 'Hours',
       text: 'Open 9 to 5.',
-      scope: 'mine',
     })
     assert.equal(hoursResponse.status, 201)
     const hours = (await hoursResponse.json()) as { id: string }
@@ -215,7 +221,7 @@ test('notes are live immediately, ask before overriding the website, and follow 
     )
 
     // A fact the website contradicts is flagged before it is saved.
-    const conflictsResponse = await request('/notes/conflicts', 'POST', {
+    const conflictsResponse = await aiRequest('/notes/conflicts', 'POST', {
       noteId: null,
       title: 'Blog add-on price',
       text: 'The blog add-on is $250.',
@@ -236,7 +242,6 @@ test('notes are live immediately, ask before overriding the website, and follow 
     const blogResponse = await request('/notes', 'POST', {
       title: 'Blog add-on price',
       text: 'The blog add-on is $250.',
-      scope: 'mine',
       overrides: [{ sourceId: pricing.id, excerpt: 'Blog add-on: $200' }],
     })
     assert.equal(blogResponse.status, 201)
@@ -251,7 +256,7 @@ test('notes are live immediately, ask before overriding the website, and follow 
     )
     // A page it already overrides isn't raised again on the next edit.
     const again = (await (
-      await request('/notes/conflicts', 'POST', {
+      await aiRequest('/notes/conflicts', 'POST', {
         noteId: blog.id,
         title: 'Blog add-on price',
         text: 'The blog add-on is $250, one-time.',
@@ -267,7 +272,7 @@ test('notes are live immediately, ask before overriding the website, and follow 
       .where(eq(knowledgeSource.id, pricing.id))
     await checkCorrections({
       assistantId: owner.id,
-      organizationId: credentials.organizationId,
+      organizationId: workspace.organizationId,
     })
     const decisions = (await (await request('/decisions')).json()) as Array<{
       id: string
@@ -324,7 +329,7 @@ test('notes are live immediately, ask before overriding the website, and follow 
     assert.equal(remaining.length, 0)
 
     // Deleting a note takes effect at once: nothing of it is searchable.
-    assert.equal((await request(`/sources/${hours.id}`, 'DELETE')).status, 204)
+    assert.equal((await request(`/notes/${hours.id}`, 'DELETE')).status, 204)
     assert.ok(
       !(await search('hours')).some((item) => item.sourceId === hours.id),
     )
@@ -350,7 +355,7 @@ test('notes are live immediately, ask before overriding the website, and follow 
       trigger: 'manual',
     })
     const status = async () =>
-      (await (await request('/preview/status')).json()) as {
+      (await (await aiRequest('/preview/status')).json()) as {
         indexing: boolean
         paused: boolean
       }

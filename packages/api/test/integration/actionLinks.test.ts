@@ -1,5 +1,5 @@
 import { startSpiderStandIn } from '../fixtures/rolesProviders'
-import { createWithOwnWebsite } from '../fixtures/ownWebsite'
+import { addWebsite, createTestWorkspace } from '../fixtures/ownWebsite'
 import { orgOf } from '../fixtures/knowledgeOwner'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
@@ -202,11 +202,22 @@ test('action links survive ingestion, shared retrieval, chat and URL-only refres
       Origin: 'http://localhost:3000',
       'Content-Type': 'application/json',
     }
-    const base = `${apiOrigin}/api/organizations/${credentials.organizationId}`
-    let assistantId = '',
-      rootId = ''
+    const workspace = await createTestWorkspace(
+      credentials,
+      'Action link fixture',
+    )
+    const base = `${apiOrigin}/api/organizations/${workspace.organizationId}`
+    const assistantId = workspace.assistantId
+    let rootId = ''
     let worker: ReturnType<typeof spawn> | undefined
+    // Your business routes; `aiRequest` reaches the AI itself.
     const request = (path: string, method = 'GET', body?: unknown) =>
+      fetch(`${base}/business${path}`, {
+        method,
+        headers,
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      })
+    const aiRequest = (path: string, method = 'GET', body?: unknown) =>
       fetch(`${base}/assistants/${assistantId}${path}`, {
         method,
         headers,
@@ -233,27 +244,19 @@ test('action links survive ingestion, shared retrieval, chat and URL-only refres
       return (await response.json()) as typeof knowledgeSource.$inferSelect
     }
     try {
-      const response = await createWithOwnWebsite(
+      const created = await addWebsite(
         (path, body) =>
-          fetch(`${base}/assistants${path}`, {
+          fetch(`${base}${path}`, {
             method: 'POST',
             headers,
             body: JSON.stringify(body),
           }),
         // Reading follows links; the ones the pages point to aren't pages here.
         {
-          name: 'Action link fixture',
           websiteUrl: fixtureOrigin,
           excludePaths: ['/plans', '/services/book'],
         },
       )
-      assert.equal(response.status, 201)
-      const created = (await response.json()) as {
-        assistant: { id: string }
-        source: { id: string }
-        indexRun: { id: string }
-      }
-      assistantId = created.assistant.id
       rootId = created.source.id
       worker = spawn(process.execPath, ['src/worker.ts'], {
         cwd,
@@ -309,7 +312,7 @@ test('action links survive ingestion, shared retrieval, chat and URL-only refres
       )
       assert.equal(objects.size, 0)
       assert.equal(
-        (await request('', 'PATCH', { status: 'published' })).status,
+        (await aiRequest('', 'PATCH', { status: 'published' })).status,
         200,
       )
       const bootstrap = await fetch(
@@ -413,52 +416,33 @@ test('action links survive ingestion, shared retrieval, chat and URL-only refres
         !(await ask()).includes(oldDestination),
         'A replaced URL was still passed to the model',
       )
-      // A profile-only change updates its own embedding, leaving content intact.
-      const beforeProfileChange = await readChunks()
-      const beforeProfileEmbeddings = embedded.length
+      // A page that reads the same (its read hash) is unchanged: it isn't
+      // profiled or embedded again, even if the profile model would now
+      // answer differently, and everything learned from it stays.
+      const beforeUnchanged = await readChunks()
+      const beforeUnchangedEmbeddings = embedded.length
+      const beforeUnchangedProfiles = profileRequests
       profileGoal = 'Arrange a maintenance visit'
-      const beforeInvalidLocation = freshGets
-      const profileRefresh = await request(`/sources/${rootId}/runs`, 'POST')
-      assert.equal(profileRefresh.status, 202)
-      await waitRun(((await profileRefresh.json()) as { id: string }).id)
-      assert(freshGets > beforeInvalidLocation)
-      const afterProfileChange = await readChunks()
-      assert.deepEqual(
-        afterProfileChange
-          .filter((chunk) => chunk.kind === 'content')
-          .map((chunk) => chunk.id)
-          .sort(),
-        beforeProfileChange
-          .filter((chunk) => chunk.kind === 'content')
-          .map((chunk) => chunk.id)
-          .sort(),
-      )
+      const beforeUnchangedReads = freshGets
+      const unchangedRefresh = await request(`/sources/${rootId}/runs`, 'POST')
+      assert.equal(unchangedRefresh.status, 202)
+      await waitRun(((await unchangedRefresh.json()) as { id: string }).id)
+      assert(freshGets > beforeUnchangedReads)
       assert.equal(
-        afterProfileChange.filter((chunk) => chunk.kind === 'pageProfile')
-          .length,
-        1,
+        (await readSource(service.id)).lastAttemptStatus,
+        'unchanged',
+      )
+      assert.equal(profileRequests, beforeUnchangedProfiles)
+      assert.equal(embedded.length, beforeUnchangedEmbeddings)
+      const afterUnchanged = await readChunks()
+      assert.deepEqual(
+        afterUnchanged.map((chunk) => [chunk.id, chunk.text]).sort(),
+        beforeUnchanged.map((chunk) => [chunk.id, chunk.text]).sort(),
       )
       assert(
-        afterProfileChange
+        !afterUnchanged
           .find((chunk) => chunk.kind === 'pageProfile')!
           .text.includes(profileGoal),
-      )
-      assert.notDeepEqual(
-        afterProfileChange.find((chunk) => chunk.kind === 'pageProfile')!
-          .embedding,
-        beforeProfileChange.find((chunk) => chunk.kind === 'pageProfile')!
-          .embedding,
-        'Changed profile must replace its vector, even when its row ID stays stable',
-      )
-      assert(
-        embedded
-          .slice(beforeProfileEmbeddings)
-          .some((text) => text.includes(profileGoal)),
-      )
-      assert(
-        embedded
-          .slice(beforeProfileEmbeddings)
-          .every((text) => text.startsWith('Title:')),
       )
 
       // Backfill uses saved JSON, never another LLM profile call; repeat is a no-op.
@@ -476,8 +460,8 @@ test('action links survive ingestion, shared retrieval, chat and URL-only refres
           process.execPath,
           [
             'scripts/backfillProfileChunks.ts',
-            '--assistant',
-            assistantId,
+            '--workspace',
+            workspace.organizationId,
             ...(apply ? ['--apply'] : []),
           ],
           { cwd, env: process.env, stdio: ['ignore', 'pipe', 'inherit'] },
@@ -551,8 +535,8 @@ test('action links survive ingestion, shared retrieval, chat and URL-only refres
           process.execPath,
           [
             'scripts/reindexActionLinks.ts',
-            '--assistant',
-            assistantId,
+            '--workspace',
+            workspace.organizationId,
             ...(apply ? ['--apply'] : []),
           ],
           { cwd, env: process.env, stdio: ['ignore', 'pipe', 'inherit'] },

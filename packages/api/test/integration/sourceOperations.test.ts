@@ -1,5 +1,6 @@
 import { startSpiderStandIn } from '../fixtures/rolesProviders'
 import { orgOf } from '../fixtures/knowledgeOwner'
+import { createTestWorkspace } from '../fixtures/ownWebsite'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
@@ -77,19 +78,17 @@ test('source operations preserve pinned evidence, recover upload cleanup, and se
   assert.equal((await once(seed, 'exit'))[0], 0)
   const { loadTestCredentials } = await import('../../scripts/localSeedSupport')
   const credentials = await loadTestCredentials('integration')
-  const [owner] = await db
-    .insert(assistant)
-    .values({
-      organizationId: credentials.organizationId,
-      name: 'Source operation regression',
-    })
-    .returning()
+  const workspace = await createTestWorkspace(
+    credentials,
+    'Source operation regression',
+  )
+  const owner = { id: workspace.assistantId }
   const headers = {
     Cookie: credentials.accounts.owner.cookie,
     Origin: 'http://localhost:3000',
     'Content-Type': 'application/json',
   }
-  const base = `${origin}/api/organizations/${credentials.organizationId}/assistants/${owner.id}`
+  const base = `${origin}/api/organizations/${workspace.organizationId}/business`
   const request = (path: string, method = 'GET', body?: unknown) =>
     fetch(`${base}${path}`, {
       method,

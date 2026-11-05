@@ -1,5 +1,5 @@
 import { startSpiderStandIn } from '../fixtures/rolesProviders'
-import { createWithOwnWebsite } from '../fixtures/ownWebsite'
+import { addWebsite, createTestWorkspace } from '../fixtures/ownWebsite'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
@@ -197,8 +197,9 @@ test('page and website scopes share durable ingestion without moving the refresh
     Origin: 'http://localhost:3000',
     'Content-Type': 'application/json',
   }
-  const base = `${apiOrigin}/api/organizations/${credentials.organizationId}/assistants`
-  let assistantId = ''
+  const workspace = await createTestWorkspace(credentials, 'Scope fixture')
+  const base = `${apiOrigin}/api/organizations/${workspace.organizationId}`
+  const assistantId = workspace.assistantId
   let worker: ReturnType<typeof spawn> | undefined
   const startWorker = () => {
     worker = spawn(process.execPath, ['src/worker.ts'], {
@@ -213,8 +214,15 @@ test('page and website scopes share durable ingestion without moving the refresh
       await once(worker, 'exit')
     }
   }
+  // Your business routes; `aiRequest` reaches the AI itself.
   const request = (path: string, method = 'GET', body?: unknown) =>
-    fetch(`${base}/${assistantId}${path}`, {
+    fetch(`${base}/business${path}`, {
+      method,
+      headers,
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    })
+  const aiRequest = (path: string, method = 'GET', body?: unknown) =>
+    fetch(`${base}/assistants/${assistantId}${path}`, {
       method,
       headers,
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -260,22 +268,15 @@ test('page and website scopes share durable ingestion without moving the refresh
     }
   }
   try {
-    const response = await createWithOwnWebsite(
+    const created = await addWebsite(
       (path, body) =>
         fetch(`${base}${path}`, {
           method: 'POST',
           headers,
           body: JSON.stringify(body),
         }),
-      { name: 'Scope fixture', websiteUrl: fixtureOrigin },
+      { websiteUrl: fixtureOrigin },
     )
-    assert.equal(response.status, 201)
-    const created = (await response.json()) as {
-      assistant: { id: string }
-      source: { id: string }
-      indexRun: { id: string }
-    }
-    assistantId = created.assistant.id
     assert.equal(
       (
         await request(`/sources/${created.source.id}`, 'PATCH', {
@@ -305,7 +306,7 @@ test('page and website scopes share durable ingestion without moving the refresh
     assert(
       !sources.some((source) => source.canonicalUrl?.endsWith('/excluded')),
     )
-    const settings = await request('', 'PATCH', { refreshIntervalHours: 24 })
+    const settings = await aiRequest('', 'PATCH', { refreshIntervalHours: 24 })
     assert.equal(settings.status, 200)
     const deadline = ((await settings.json()) as { nextRefreshAt: string })
       .nextRefreshAt
@@ -366,10 +367,8 @@ test('page and website scopes share durable ingestion without moving the refresh
       .select()
       .from(indexRun)
       .where(eq(indexRun.id, fallback.indexRun.id))
-    assert.equal(fallbackRun.crawlProvider, 'http')
-    assert(
-      fallbackRun.crawlWarning?.includes('JavaScript content may be missing'),
-    )
+    // One page goes through the page reader, which renders when it must.
+    assert.equal(fallbackRun.crawlProvider, 'browser')
     assert(
       (await readSource(fallback.source.id)).cleanedText?.includes(
         'HTTP fallback',
@@ -435,7 +434,7 @@ test('page and website scopes share durable ingestion without moving the refresh
         type: 'text/plain',
       }),
     )
-    const uploadResponse = await fetch(`${base}/${assistantId}/uploads`, {
+    const uploadResponse = await fetch(`${base}/business/uploads`, {
       method: 'POST',
       headers: { Cookie: headers.Cookie, Origin: headers.Origin },
       body: upload,
@@ -658,7 +657,7 @@ test('page and website scopes share durable ingestion without moving the refresh
 
     // The scheduler still advances due refreshes, and settings still reset it.
     assert.equal(
-      (await request('', 'PATCH', { status: 'published' })).status,
+      (await aiRequest('', 'PATCH', { status: 'published' })).status,
       200,
     )
     await db
@@ -701,7 +700,7 @@ test('page and website scopes share durable ingestion without moving the refresh
       scheduledDeadline,
       'Scheduled completion must not reset its own timer',
     )
-    const changedSettings = await request('', 'PATCH', {
+    const changedSettings = await aiRequest('', 'PATCH', {
       refreshIntervalHours: 48,
     })
     assert.equal(changedSettings.status, 200)

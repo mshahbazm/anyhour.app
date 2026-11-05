@@ -1,5 +1,5 @@
 import { startSpiderStandIn } from '../fixtures/rolesProviders'
-import { createWithOwnWebsite } from '../fixtures/ownWebsite'
+import { addWebsite, createTestWorkspace } from '../fixtures/ownWebsite'
 import { orgOf } from '../fixtures/knowledgeOwner'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
@@ -284,7 +284,11 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
     Origin: 'http://localhost:3000',
     'Content-Type': 'application/json',
   }
-  const base = `${apiOrigin}/api/organizations/${credentials.organizationId}`
+  const workspace = await createTestWorkspace(
+    credentials,
+    'Shared content cleanup fixture',
+  )
+  const base = `${apiOrigin}/api/organizations/${workspace.organizationId}`
   const request = (path: string, method = 'GET', body?: object) =>
     fetch(`${base}${path}`, {
       method,
@@ -294,24 +298,18 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
   let worker: ReturnType<typeof spawn> | undefined
   let assistantId: string | undefined
   try {
-    const response = await createWithOwnWebsite(
-      (path, body) => request(`/assistants${path}`, 'POST', body),
-      { name: 'Shared content cleanup fixture', websiteUrl: fixtureOrigin },
+    const created = await addWebsite(
+      (path, body) => request(path, 'POST', body),
+      { websiteUrl: fixtureOrigin },
     )
-    assert.equal(response.status, 201)
-    const created = (await response.json()) as {
-      assistant: { id: string }
-      source: { id: string }
-      indexRun: { id: string }
-    }
-    assistantId = created.assistant.id
+    assistantId = workspace.assistantId
     const botId = assistantId,
       rootId = created.source.id
     async function waitForRun(runId: string) {
       // Eight durable stage attempts can span several recovery sweeps after
       // the transport job exhausts its smaller delivery retry allowance.
       for (let attempt = 0; attempt < 3000; attempt++) {
-        const response = await request(`/assistants/${botId}/runs`)
+        const response = await request(`/business/runs`)
         assert.equal(response.status, 200)
         const runs = (await response.json()) as Array<
           typeof indexRun.$inferSelect
@@ -371,9 +369,7 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
         ?.cleanedText?.includes('10 AM to 4 PM'),
       'Different branch hours were incorrectly merged',
     )
-    const homeResponse = await request(
-      `/assistants/${botId}/sources/${home.id}`,
-    )
+    const homeResponse = await request(`/business/sources/${home.id}`)
     assert.equal(homeResponse.status, 200)
     const homeDetail = (await homeResponse.json()) as {
       cleanedText: string
@@ -442,12 +438,7 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
       })
       .returning()
     const retrieve = () =>
-      searchKnowledge(
-        botId,
-        credentials.organizationId,
-        chat.id,
-        'Opening hours',
-      )
+      searchKnowledge(botId, workspace.organizationId, chat.id, 'Opening hours')
     const results = await retrieve()
     assert.equal(
       results.filter((result) => result.text.includes(commonHours)).length,
@@ -456,7 +447,7 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
     )
     assert.equal(
       (
-        await request(`/assistants/${botId}/sources/${home.id}`, 'PATCH', {
+        await request(`/business/sources/${home.id}`, 'PATCH', {
           isIncluded: false,
         })
       ).status,
@@ -477,7 +468,7 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
     )
     assert.equal(
       (
-        await request(`/assistants/${botId}/sources/${rootId}`, 'PATCH', {
+        await request(`/business/sources/${rootId}`, 'PATCH', {
           excludePaths: ['/services', '/contact'],
         })
       ).status,
@@ -489,7 +480,7 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
     )
     assert.equal(
       (
-        await request(`/assistants/${botId}/sources/${rootId}`, 'PATCH', {
+        await request(`/business/sources/${rootId}`, 'PATCH', {
           excludePaths: [],
         })
       ).status,
@@ -497,7 +488,7 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
     )
     assert.equal(
       (
-        await request(`/assistants/${botId}/sources/${home.id}`, 'PATCH', {
+        await request(`/business/sources/${home.id}`, 'PATCH', {
           isIncluded: true,
         })
       ).status,
@@ -505,7 +496,7 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
     )
     assert.equal(
       (
-        await request(`/assistants/${botId}/sources/${rootId}`, 'PATCH', {
+        await request(`/business/sources/${rootId}`, 'PATCH', {
           isIncluded: false,
         })
       ).status,
@@ -518,17 +509,14 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
     )
     assert.equal(
       (
-        await request(`/assistants/${botId}/sources/${rootId}`, 'PATCH', {
+        await request(`/business/sources/${rootId}`, 'PATCH', {
           isIncluded: true,
         })
       ).status,
       200,
     )
     fake.revision = 2
-    const refresh = await request(
-      `/assistants/${botId}/sources/${rootId}/runs`,
-      'POST',
-    )
+    const refresh = await request(`/business/sources/${rootId}/runs`, 'POST')
     assert.equal(refresh.status, 202)
     const second = await waitForRun(
       ((await refresh.json()) as { id: string }).id,
@@ -578,17 +566,14 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
       (page) => page.canonicalUrl === `${fixtureOrigin}/bath`,
     )!
     const readPage = async (id: string) => {
-      const response = await request(`/assistants/${botId}/sources/${id}`)
+      const response = await request(`/business/sources/${id}`)
       assert.equal(response.status, 200)
       return (await response.json()) as typeof knowledgeSource.$inferSelect & {
         archiveNotice: string | null
       }
     }
     const refreshWebsite = async () => {
-      const response = await request(
-        `/assistants/${botId}/sources/${rootId}/runs`,
-        'POST',
-      )
+      const response = await request(`/business/sources/${rootId}/runs`, 'POST')
       assert.equal(response.status, 202)
       return waitForRun(((await response.json()) as { id: string }).id)
     }
@@ -648,7 +633,7 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
       missingItems.find((item) => item.sourceId === contact.id)?.attemptCount,
       1,
     )
-    const listing = await request(`/assistants/${botId}/sources`)
+    const listing = await request(`/business/sources`)
     assert.equal(listing.status, 200)
     const listed = (await listing.json()) as Array<
       typeof knowledgeSource.$inferSelect
@@ -692,7 +677,7 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
     )
     assert.equal(
       (
-        await request(`/assistants/${botId}/sources/${home.id}`, 'PATCH', {
+        await request(`/business/sources/${home.id}`, 'PATCH', {
           isIncluded: false,
         })
       ).status,
@@ -706,7 +691,7 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
     )
     assert.equal(
       (
-        await request(`/assistants/${botId}/sources/${home.id}`, 'PATCH', {
+        await request(`/business/sources/${home.id}`, 'PATCH', {
           isIncluded: true,
         })
       ).status,
@@ -728,7 +713,7 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
       .where(eq(knowledgeSource.id, contact.id))
     pageStatuses.set('/contact', 503)
     const retryResponse = await request(
-      `/assistants/${botId}/sources/${contact.id}/runs`,
+      `/business/sources/${contact.id}/runs`,
       'POST',
     )
     assert.equal(retryResponse.status, 202)
@@ -775,7 +760,7 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
     await recoverArchiveRechecks()
     let recheck: typeof indexRun.$inferSelect | undefined
     for (let attempt = 0; attempt < 200 && !recheck; attempt++) {
-      const rechecksResponse = await request(`/assistants/${botId}/runs`)
+      const rechecksResponse = await request(`/business/runs`)
       recheck = (
         (await rechecksResponse.json()) as Array<typeof indexRun.$inferSelect>
       ).find(
@@ -950,8 +935,7 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
       'Terminal failure left temporary content after storage recovered',
     )
     assert.equal(
-      (await request(`/assistants/${botId}/sources/${rootId}`, 'DELETE'))
-        .status,
+      (await request(`/business/sources/${rootId}`, 'DELETE')).status,
       204,
     )
     assert.equal(
@@ -974,7 +958,6 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
         .update(indexRun)
         .set({ status: 'failed', phase: 'completed', completedAt: new Date() })
         .where(eq(indexRun.organizationId, orgOf(assistantId)))
-      await request(`/assistants/${assistantId}`, 'DELETE')
     }
     server.stop()
     fixture.stop()

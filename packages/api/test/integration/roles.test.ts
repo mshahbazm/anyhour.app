@@ -1,4 +1,4 @@
-import { createWithOwnWebsite } from '../fixtures/ownWebsite'
+import { addWebsite, createTestWorkspace } from '../fixtures/ownWebsite'
 import { orgOf } from '../fixtures/knowledgeOwner'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -360,11 +360,13 @@ test('organization roles work through the running API', async () => {
   }
 }, 30_000)
 
-test('product routes, indexing, widget chat, forms, and lead retention work over HTTP', async () => {
+test('product routes, indexing and widget chat work over HTTP', async () => {
   const { loadTestCredentials, requestAs } =
     await import('../../scripts/localSeedSupport')
   const credentials = await loadTestCredentials('integration')
-  const base = `${credentials.apiOrigin}/api/organizations/${credentials.organizationId}`
+  const workspace = await createTestWorkspace(credentials, 'Test plumbing')
+  const assistantId = workspace.assistantId
+  const base = `${credentials.apiOrigin}/api/organizations/${workspace.organizationId}`
   const request = (
     role: tTestRole,
     path: string,
@@ -420,11 +422,11 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
     stdio: ['ignore', 'ignore', 'inherit'],
   })
 
-  async function waitForRun(runId: string, assistantId: string) {
+  async function waitForRun(runId: string) {
     // Durable recovery permits eight failed attempts, beyond queue delivery's
     // short retry window. Allow the minute recovery ticks to exhaust that budget.
     for (let attempt = 0; attempt < 600; attempt += 1) {
-      const response = await request('owner', `/assistants/${assistantId}/runs`)
+      const response = await request('owner', '/business/runs')
       const runs = (await response.json()) as Array<{
         id: string
         status: string
@@ -437,31 +439,35 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
   }
 
   try {
-    const denied = await request('member', '/assistants', 'POST', {
-      name: 'Denied',
-      websiteUrl: `http://127.0.0.1:${fixture.port}/`,
-    })
-    assert(denied.status === 403, 'Member created an assistant')
-    const outsider = await request('outsider', '/assistants')
-    assert(outsider.status === 403, 'Outsider saw assistants')
-
-    const createdResponse = await createWithOwnWebsite(
-      (path, body) => request('owner', `/assistants${path}`, 'POST', body),
+    // The workspace's one AI: everyone in it reads it, only owners and
+    // admins change it or what it learns; outsiders see nothing.
+    const ai = await request('member', '/assistant')
+    assert(
+      ai.status === 200 &&
+        ((await ai.json()) as { id: string }).id === assistantId,
+      'Member could not read the workspace AI',
+    )
+    const renamed = await request(
+      'member',
+      `/assistants/${assistantId}`,
+      'PATCH',
       {
-        name: 'Test plumbing',
-        websiteUrl: `http://127.0.0.1:${fixture.port}/`,
+        name: 'Renamed by a member',
       },
     )
-    assert(
-      createdResponse.status === 201,
-      `Assistant creation failed: ${createdResponse.status}`,
+    assert(renamed.status === 403, 'Member changed the AI')
+    const deniedSource = await request('member', '/business/sources', 'POST', {
+      kind: 'website',
+      url: `http://127.0.0.1:${fixture.port}/`,
+    })
+    assert(deniedSource.status === 403, 'Member added a website')
+    const outsider = await request('outsider', '/assistant')
+    assert(outsider.status === 403, 'Outsider saw the AI')
+
+    const created = await addWebsite(
+      (path, body) => request('owner', path, 'POST', body),
+      { websiteUrl: `http://127.0.0.1:${fixture.port}/` },
     )
-    const created = (await createdResponse.json()) as {
-      assistant: { id: string }
-      source: { id: string }
-      indexRun: { id: string }
-    }
-    const assistantId = created.assistant.id
 
     const foreignOrganizationResponse = await requestAs(
       credentials,
@@ -491,7 +497,7 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
         'Assistant data leaked into another organization',
       )
       const ownerToForeign = await fetch(
-        `${credentials.apiOrigin}/api/organizations/${foreignOrganization.id}/assistants`,
+        `${credentials.apiOrigin}/api/organizations/${foreignOrganization.id}/assistant`,
         { headers: { Cookie: credentials.accounts.owner.cookie } },
       )
       assert(
@@ -517,13 +523,10 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
     )
     {
       assert(
-        (await waitForRun(created.indexRun.id, assistantId)) === 'completed',
+        (await waitForRun(created.indexRun.id)) === 'completed',
         'Initial crawl did not complete',
       )
-      const sourcesResponse = await request(
-        'owner',
-        `/assistants/${assistantId}/sources`,
-      )
+      const sourcesResponse = await request('owner', `/business/sources`)
       const sources = (await sourcesResponse.json()) as Array<{
         id: string
         status: string
@@ -556,17 +559,14 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
           },
         ),
       )
-      const uploadResponse = await fetch(
-        `${base}/assistants/${assistantId}/uploads`,
-        {
-          method: 'POST',
-          headers: {
-            Cookie: credentials.accounts.owner.cookie,
-            Origin: 'http://localhost:3000',
-          },
-          body: uploadBody,
+      const uploadResponse = await fetch(`${base}/business/uploads`, {
+        method: 'POST',
+        headers: {
+          Cookie: credentials.accounts.owner.cookie,
+          Origin: 'http://localhost:3000',
         },
-      )
+        body: uploadBody,
+      })
       const uploadError =
         uploadResponse.status === 201
           ? null
@@ -589,11 +589,11 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
           'Upload object key is missing',
         )
         assert(
-          (await waitForRun(uploaded.indexRun.id, assistantId)) === 'completed',
+          (await waitForRun(uploaded.indexRun.id)) === 'completed',
           'Uploaded file was not indexed',
         )
         const uploadedSource = (await (
-          await request('owner', `/assistants/${assistantId}/sources`)
+          await request('owner', `/business/sources`)
         ).json()) as typeof sources
         assert(
           uploadedSource.some(
@@ -607,7 +607,7 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
           removedStatus = (
             await request(
               'owner',
-              `/assistants/${assistantId}/sources/${uploaded.source.id}`,
+              `/business/sources/${uploaded.source.id}`,
               'DELETE',
             )
           ).status
@@ -624,16 +624,16 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
       version = 2
       const refreshResponse = await request(
         'owner',
-        `/assistants/${assistantId}/sources/${hours.id}/runs`,
+        `/business/sources/${hours.id}/runs`,
         'POST',
       )
       const refresh = (await refreshResponse.json()) as { id: string }
       assert(
-        (await waitForRun(refresh.id, assistantId)) === 'completed',
+        (await waitForRun(refresh.id)) === 'completed',
         'Changed page refresh failed',
       )
       const refreshedSources = (await (
-        await request('owner', `/assistants/${assistantId}/sources`)
+        await request('owner', `/business/sources`)
       ).json()) as typeof sources
       const updatedHours = refreshedSources.find(
         (item) => item.id === hours.id,
@@ -646,16 +646,16 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
       failed = true
       const failedResponse = await request(
         'owner',
-        `/assistants/${assistantId}/sources/${hours.id}/runs`,
+        `/business/sources/${hours.id}/runs`,
         'POST',
       )
       const failedRun = (await failedResponse.json()) as { id: string }
       assert(
-        (await waitForRun(failedRun.id, assistantId)) === 'failed',
+        (await waitForRun(failedRun.id)) === 'failed',
         'Failed refresh was not reported',
       )
       const retainedSources = (await (
-        await request('owner', `/assistants/${assistantId}/sources`)
+        await request('owner', `/business/sources`)
       ).json()) as typeof sources
       assert(
         retainedSources.find((item) => item.id === hours.id)?.contentHash ===
@@ -794,138 +794,28 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
           !/\b(?:18|19|20)\d{2}\b/.test(unknownAnswer),
         `Chat invented an unsupported founding year: ${unknownAnswer}`,
       )
-      const createdForm = await request(
-        'owner',
-        `/assistants/${assistantId}/forms`,
-        'POST',
-        {
-          name: 'Request service',
-          title: 'Request a callback',
-          isDefault: true,
-          fields: [
-            { key: 'name', label: 'Name', type: 'text' },
-            { key: 'email', label: 'Email', type: 'email', required: true },
-            { key: 'issue', label: 'Issue', type: 'textarea' },
-          ],
-        },
-      )
-      assert(createdForm.status === 201, 'Form creation failed')
-      const form = (await createdForm.json()) as { id: string }
-      const submitUrl = `${credentials.apiOrigin}/api/widget/${assistantId}/forms/${form.id}/submissions`
-      const unpublishedSubmit = await fetch(submitUrl, {
-        method: 'POST',
-        headers: { ...widgetHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          answers: { email: 'draft@example.com' },
-          idempotencyKey: crypto.randomUUID(),
-        }),
-      })
-      assert(
-        unpublishedSubmit.status === 404,
-        'An unpublished form accepted a public submission',
-      )
-      const publishedForm = await request(
-        'owner',
-        `/assistants/${assistantId}/forms/${form.id}`,
-        'PATCH',
-        { status: 'published' },
-      )
-      assert(publishedForm.status === 200, 'Form publish failed')
-      const submitBody = {
-        answers: {
-          name: 'Ada',
-          email: 'ada@example.com',
-          issue: 'Water heater repair',
-        },
-        conversationId: chat.id,
-        resumeToken: chat.resumeToken,
-        idempotencyKey: crypto.randomUUID(),
-      }
-      const submit = () =>
-        fetch(submitUrl, {
-          method: 'POST',
-          headers: { ...widgetHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify(submitBody),
-        })
-      const first = await submit()
-      const second = await submit()
-      assert(
-        first.status === 201 && second.status === 201,
-        'Form submission failed',
-      )
-      const firstData = (await first.json()) as {
-        id: string
-        leadId: string
-        contactId: string
-      }
-      const secondData = (await second.json()) as typeof firstData
-      assert(
-        firstData.id === secondData.id &&
-          firstData.leadId === secondData.leadId,
-        'Idempotency created a duplicate lead',
-      )
-      const unauthorizedReplay = await fetch(submitUrl, {
-        method: 'POST',
-        headers: { ...widgetHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...submitBody, resumeToken: 'invalid-token' }),
-      })
-      assert(
-        unauthorizedReplay.status === 403,
-        'Idempotency replay bypassed conversation authorization',
-      )
-      const repeat = await fetch(submitUrl, {
-        method: 'POST',
-        headers: { ...widgetHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...submitBody,
-          idempotencyKey: crypto.randomUUID(),
-        }),
-      })
-      const repeatData = (await repeat.json()) as typeof firstData
-      assert(
-        repeat.status === 201 &&
-          repeatData.contactId === firstData.contactId &&
-          repeatData.leadId !== firstData.leadId,
-        'One contact should have separate requests',
-      )
-      const merge = await request(
-        'member',
-        `/leads/${repeatData.leadId}/merge`,
-        'POST',
-        { targetLeadId: firstData.leadId },
-      )
-      assert(merge.status === 200, 'Member could not merge related leads')
       const deleteChat = await request(
         'owner',
         `/assistants/${assistantId}/conversations/${chat.id}`,
         'DELETE',
       )
       assert(deleteChat.status === 204, 'Conversation deletion failed')
-      const retainedLead = await request('owner', `/leads/${firstData.leadId}`)
-      assert(retainedLead.status === 200, 'Lead was deleted with conversation')
-      const leadDetails = (await retainedLead.json()) as {
-        contact: { id: string }
-      }
-      assert(
-        leadDetails.contact.id === firstData.contactId,
-        'Contact was deleted with conversation',
-      )
 
       sitemapEnabled = false
       version = 3
       const noSitemapRefresh = await request(
         'owner',
-        `/assistants/${assistantId}/sources/${created.source.id}/runs`,
+        `/business/sources/${created.source.id}/runs`,
         'POST',
       )
       const noSitemapRun = (await noSitemapRefresh.json()) as { id: string }
       assert(
         noSitemapRefresh.status === 202 &&
-          (await waitForRun(noSitemapRun.id, assistantId)) === 'completed',
+          (await waitForRun(noSitemapRun.id)) === 'completed',
         'Website refresh without a sitemap failed',
       )
       const afterNoSitemap = (await (
-        await request('owner', `/assistants/${assistantId}/sources`)
+        await request('owner', `/business/sources`)
       ).json()) as typeof sources
       assert(
         afterNoSitemap.find((item) => item.id === hours.id)?.contentHash !==
@@ -935,24 +825,24 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
 
       const exclude = await request(
         'owner',
-        `/assistants/${assistantId}/sources/${created.source.id}`,
+        `/business/sources/${created.source.id}`,
         'PATCH',
         { excludePaths: ['/hours'] },
       )
       assert(exclude.status === 200, 'Could not set a website exclusion')
       const exclusionRefresh = await request(
         'owner',
-        `/assistants/${assistantId}/sources/${created.source.id}/runs`,
+        `/business/sources/${created.source.id}/runs`,
         'POST',
       )
       const exclusionRun = (await exclusionRefresh.json()) as { id: string }
       assert(
         exclusionRefresh.status === 202 &&
-          (await waitForRun(exclusionRun.id, assistantId)) === 'completed',
+          (await waitForRun(exclusionRun.id)) === 'completed',
         'Website exclusion refresh failed',
       )
       const excludedSources = (await (
-        await request('owner', `/assistants/${assistantId}/sources`)
+        await request('owner', `/business/sources`)
       ).json()) as Array<{ id: string; status: string }>
       assert(
         excludedSources.find((item) => item.id === hours.id)?.status ===
@@ -1013,24 +903,24 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
       )
       const include = await request(
         'owner',
-        `/assistants/${assistantId}/sources/${created.source.id}`,
+        `/business/sources/${created.source.id}`,
         'PATCH',
         { includePaths: ['/hours'], excludePaths: [] },
       )
       assert(include.status === 200, 'Could not set a website inclusion')
       const inclusionRefresh = await request(
         'owner',
-        `/assistants/${assistantId}/sources/${created.source.id}/runs`,
+        `/business/sources/${created.source.id}/runs`,
         'POST',
       )
       const inclusionRun = (await inclusionRefresh.json()) as { id: string }
       assert(
         inclusionRefresh.status === 202 &&
-          (await waitForRun(inclusionRun.id, assistantId)) === 'completed',
+          (await waitForRun(inclusionRun.id)) === 'completed',
         'Website inclusion refresh failed',
       )
       const includedSources = (await (
-        await request('owner', `/assistants/${assistantId}/sources`)
+        await request('owner', `/business/sources`)
       ).json()) as Array<{ id: string; status: string }>
       assert(
         includedSources.find((item) => item.id === hours.id)?.status ===
@@ -1136,138 +1026,6 @@ async function createPublicWidgetFixture() {
     headers: { Authorization: `Bearer ${token}`, Origin: origin },
   }
 }
-
-test('public form submissions fill empty contact fields and preserve existing values', async () => {
-  const { credentials, assistantId, headers } =
-    await createPublicWidgetFixture()
-  const formsPath = `${credentials.apiOrigin}/api/organizations/${credentials.organizationId}/assistants/${assistantId}/forms`
-  const ownerHeaders = {
-    Cookie: credentials.accounts.owner.cookie,
-    Origin: 'http://localhost:3000',
-    'Content-Type': 'application/json',
-  }
-  const created = await fetch(formsPath, {
-    method: 'POST',
-    headers: ownerHeaders,
-    body: JSON.stringify({
-      name: 'Contact',
-      title: 'Request contact',
-      fields: [
-        { key: 'name', label: 'Name', type: 'text' },
-        { key: 'email', label: 'Email', type: 'email', required: true },
-        { key: 'phone', label: 'Phone', type: 'phone' },
-      ],
-    }),
-  })
-  assert(created.status === 201, 'Could not create public form test fixture')
-  const formRecord = (await created.json()) as { id: string }
-  const published = await fetch(`${formsPath}/${formRecord.id}`, {
-    method: 'PATCH',
-    headers: ownerHeaders,
-    body: JSON.stringify({ status: 'published' }),
-  })
-  assert(published.status === 200, 'Could not publish public form test fixture')
-  const submitUrl = `${credentials.apiOrigin}/api/widget/${assistantId}/forms/${formRecord.id}/submissions`
-  const submit = (answers: Record<string, string>) =>
-    fetch(submitUrl, {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answers, idempotencyKey: crypto.randomUUID() }),
-    })
-  const first = await submit({ name: 'Ada', email: 'ada@example.com' })
-  assert(first.status === 201, 'Initial public form submission failed')
-  const firstData = (await first.json()) as { contactId: string }
-  const conflicting = await submit({
-    name: 'Different Person',
-    email: 'ada@example.com',
-    phone: '+15551234567',
-  })
-  assert(conflicting.status === 201, 'Conflicting public submission failed')
-  const conflictingData = (await conflicting.json()) as { leadId: string }
-  const details = await fetch(
-    `${credentials.apiOrigin}/api/organizations/${credentials.organizationId}/leads/${conflictingData.leadId}`,
-    { headers: ownerHeaders },
-  )
-  const data = (await details.json()) as {
-    contact: { id: string; name: string | null; phone: string | null }
-    lead: { summary: string | null }
-  }
-  assert(
-    details.status === 200 &&
-      data.contact.id === firstData.contactId &&
-      data.contact.name === 'Ada' &&
-      data.contact.phone === '+15551234567' &&
-      data.lead.summary?.includes('Different Person') === true,
-    'Anonymous submission replaced a contact or lost submitted details',
-  )
-})
-
-test('accepted form submissions replay after their conversation is deleted', async () => {
-  const { credentials, assistantId, headers } =
-    await createPublicWidgetFixture()
-  const ownerHeaders = {
-    Cookie: credentials.accounts.owner.cookie,
-    Origin: 'http://localhost:3000',
-    'Content-Type': 'application/json',
-  }
-  const formsPath = `${credentials.apiOrigin}/api/organizations/${credentials.organizationId}/assistants/${assistantId}/forms`
-  const created = await fetch(formsPath, {
-    method: 'POST',
-    headers: ownerHeaders,
-    body: JSON.stringify({
-      name: 'Callback',
-      title: 'Request a callback',
-      fields: [{ key: 'email', label: 'Email', type: 'email', required: true }],
-    }),
-  })
-  assert(created.status === 201, 'Could not create replay form')
-  const formRecord = (await created.json()) as { id: string }
-  const published = await fetch(`${formsPath}/${formRecord.id}`, {
-    method: 'PATCH',
-    headers: ownerHeaders,
-    body: JSON.stringify({ status: 'published' }),
-  })
-  assert(published.status === 200, 'Could not publish replay form')
-  const started = await fetch(
-    `${credentials.apiOrigin}/api/widget/${assistantId}/conversations`,
-    {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: '{}',
-    },
-  )
-  assert(started.status === 201, 'Could not start replay conversation')
-  const chat = (await started.json()) as { id: string; resumeToken: string }
-  const submissionUrl = `${credentials.apiOrigin}/api/widget/${assistantId}/forms/${formRecord.id}/submissions`
-  const payload = {
-    answers: { email: 'replay@example.com' },
-    conversationId: chat.id,
-    resumeToken: chat.resumeToken,
-    idempotencyKey: crypto.randomUUID(),
-  }
-  const submit = (input: typeof payload) =>
-    fetch(submissionUrl, {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    })
-  const first = await submit(payload)
-  assert(first.status === 201, 'Initial replay submission failed')
-  const accepted = (await first.json()) as { id: string }
-  const removed = await fetch(
-    `${credentials.apiOrigin}/api/organizations/${credentials.organizationId}/assistants/${assistantId}/conversations/${chat.id}`,
-    { method: 'DELETE', headers: ownerHeaders },
-  )
-  assert(removed.status === 204, 'Could not delete replay conversation')
-  const replay = await submit(payload)
-  assert(replay.status === 201, 'Accepted submission did not replay')
-  assert(
-    ((await replay.json()) as { id: string }).id === accepted.id,
-    'Replay created a different submission',
-  )
-  const invalid = await submit({ ...payload, resumeToken: 'wrong-token' })
-  assert(invalid.status === 403, 'Invalid token could replay a submission')
-})
 
 test('public chat rejects an accidental duplicate send', async () => {
   const { db, credentials, assistantId, headers } =
@@ -1388,8 +1146,12 @@ test('public widget enforces its assistant-wide rate bucket', async () => {
 })
 
 test('source listing paginates without returning indexed content', async () => {
-  const { db, credentials, assistantId } = await createPublicWidgetFixture()
+  const { loadTestCredentials } = await import('../../scripts/localSeedSupport')
+  const { db } = await import('../../src/db')
   const { knowledgeSource } = await import('../../src/db/schema')
+  const credentials = await loadTestCredentials('integration')
+  const workspace = await createTestWorkspace(credentials, 'Source listing')
+  const assistantId = workspace.assistantId
   const inserted = await db
     .insert(knowledgeSource)
     .values(
@@ -1402,7 +1164,7 @@ test('source listing paginates without returning indexed content', async () => {
       })),
     )
     .returning({ id: knowledgeSource.id })
-  const sourceUrl = `${credentials.apiOrigin}/api/organizations/${credentials.organizationId}/assistants/${assistantId}/sources`
+  const sourceUrl = `${credentials.apiOrigin}/api/organizations/${workspace.organizationId}/business/sources`
   const headers = {
     Cookie: credentials.accounts.owner.cookie,
     Origin: 'http://localhost:3000',
@@ -1449,7 +1211,7 @@ test('source listing paginates without returning indexed content', async () => {
   const foreign = (await foreignCreated.json()) as { id: string }
   try {
     const foreignDetail = await fetch(
-      `${credentials.apiOrigin}/api/organizations/${foreign.id}/assistants/${assistantId}/sources/${inserted[0].id}`,
+      `${credentials.apiOrigin}/api/organizations/${foreign.id}/business/sources/${inserted[0].id}`,
       { headers: { Cookie: credentials.accounts.outsider.cookie } },
     )
     assert(
