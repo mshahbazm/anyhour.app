@@ -8,8 +8,8 @@ import { and, eq } from 'drizzle-orm'
 import { knowledgeFormatVersion } from '../../src/services/knowledge/cleanup/formatBlocks'
 import { buildProfileChunk } from '../../src/services/knowledge/profileChunk'
 
-// Supplemental service-level race tests. HTTP ingestion/retrieval is covered by
-// actionLinks.test.ts; the provider hook makes concurrent writes deterministic.
+// Service-level race tests; the provider hook makes concurrent writes
+// deterministic. Reading a real website end to end is test/crawl.
 test('embedding delivery preserves newer results and rechecks skipped profile vectors', async () => {
   const databaseUrl = process.env.DATABASE_URL
   if (

@@ -5,8 +5,7 @@ import { once } from 'node:events'
 import { test } from 'bun:test'
 import { eq } from 'drizzle-orm'
 
-// Supplements the HTTP/worker lifecycle in cleanupPipeline.test.ts with stale
-// deliveries that cannot be reliably timed through live concurrent crawls.
+// Stale deliveries that cannot be reliably timed through live concurrent crawls.
 test('stale failures and delayed archive jobs cannot invalidate restored knowledge', async () => {
   const databaseUrl = process.env.DATABASE_URL
   if (
