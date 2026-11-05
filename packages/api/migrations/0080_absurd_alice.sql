@@ -1,0 +1,1 @@
+ALTER TABLE "knowledge_source" ADD COLUMN "read_hash" text;

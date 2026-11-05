@@ -21,6 +21,9 @@ export interface iPricing {
 export const vendorKeys = {
   openai: 'OPENAI_API_KEY',
   typesafe: 'TYPESAFE_API_KEY',
+  // Page reading (config/pageReaders.config.ts), not a model vendor, but
+  // one key per vendor all the same.
+  spider: 'SPIDER_API_KEY',
 } as const
 export type tVendor = keyof typeof vendorKeys
 

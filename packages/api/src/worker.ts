@@ -81,8 +81,8 @@ await boss.work<{ runId: string; sourceId: string }>(
   },
 )
 
-// Pages of one website are read side by side: as many as the browser opens
-// tabs at once (services/knowledge/pageLoaders/).
+// Pages of one website are read side by side, each through the page reader
+// (services/pageReading/).
 await boss.work<{ runId: string; sourceId: string }>(
   'prepare-page',
   { localConcurrency: knowledgeConfig.pagesAtOnce },

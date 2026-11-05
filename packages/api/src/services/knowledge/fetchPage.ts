@@ -1,136 +1,64 @@
-import type { knowledgeSource } from '../../db/schema'
-import { ApiError } from '../http/apiError'
-import { isCurrentContentHash } from './cleanup/formatBlocks'
+import { createHash } from 'node:crypto'
+import { eq } from 'drizzle-orm'
+import { db } from '../../db'
+import { indexRun, type knowledgeSource } from '../../db/schema'
+import { extractPageBlocks } from './cleanup/extractBlocks'
+import {
+  isCurrentContentHash,
+  knowledgeFormatVersion,
+} from './cleanup/formatBlocks'
 import { PageUnavailableError } from './pageFailure'
 import type { iStagedPage } from './staging'
 import {
   detectDocumentFormat,
+  documentFormats,
   DocumentUnreadableError,
   extractDocumentText,
   unreadableReason,
 } from './documents'
-import { inspectHtml, fetchPublicUrl, readLimited } from './web'
+import { inspectHtml } from './web'
 import { assertPageScope } from './pageScope'
 import { sourceScope } from './sourceScope'
+import { ownerOf } from './owner'
+import { sourceUsageContext } from './sourceUsageContext'
 import {
-  isBlockedPage,
-  loadPage,
-  PageBlockedError,
+  pageBytes,
+  pageHtml,
   PageNotFoundError,
-  pageLoadersConfigured,
-} from './pageLoaders'
+  readPage,
+  type iReadPage,
+} from '../pageReading/read'
 
-type tValidators = NonNullable<iStagedPage['httpValidators']>
-
-export type tWebsitePage =
-  | { kind: 'unchanged'; url: string; httpValidators: tValidators }
-  | {
-      kind: 'html'
-      url: string
-      html: string
-      /** A page loader's name, or "plain". */
-      loadedBy: string
-      httpValidators: tValidators
-    }
-  | {
-      kind: 'file'
-      url: string
-      bytes: Uint8Array
-      type: string
-      httpValidators: tValidators
-    }
+// Files read as documents from the start: their bytes, not a page.
+const fileExtensions = new Set<string>([
+  ...documentFormats.pdf.extensions,
+  ...documentFormats.docx.extensions,
+])
+const isFileUrl = (url: string) =>
+  fileExtensions.has(
+    new URL(url).pathname.split('.').pop()?.toLowerCase() ?? '',
+  )
 
 /**
- * One website page. A plain request first: it answers "unchanged" (304) and
- * serves documents such as PDFs. HTML, or a refused plain request, is loaded
- * again through the page loaders (a browser, so scripts run and robots.txt
- * doesn't apply) when one is configured; failing that, the plain HTML. A
- * bot-protection page is never taken as content.
+ * What a read served, before cleanup: the page's blocks (text, links and
+ * where they sit), so scripts, nonces and markup changes don't count. The
+ * same hash as the last read means the page is unchanged.
  */
-export async function loadWebsitePage(
-  url: string,
-  {
-    headers = {},
-    checkUrl = () => undefined,
-  }: {
-    headers?: Record<string, string>
-    /** Throws when a final address (after redirects) may not be read. */
-    checkUrl?: (url: string) => void
-  } = {},
-): Promise<tWebsitePage> {
-  const browser = pageLoadersConfigured()
-  let plain: Awaited<ReturnType<typeof fetchPublicUrl>> | undefined
-  let failure: unknown
-  try {
-    plain = await fetchPublicUrl(url, headers)
-  } catch (error) {
-    // An address we may not read never goes to a page loader either.
-    if (error instanceof ApiError || !browser) throw error
-    failure = error
-  }
-  let plainHtml: { url: string; html: string } | undefined
-  let blocked = false
-  let httpValidators: tValidators = { etag: null, lastModifiedHeader: null }
-  if (plain) {
-    const { response } = plain
-    try {
-      checkUrl(plain.url)
-    } catch (error) {
-      await response.body?.cancel()
-      throw error
-    }
-    httpValidators = {
-      etag: response.headers.get('etag'),
-      lastModifiedHeader: response.headers.get('last-modified'),
-    }
-    if (response.status === 304) {
-      await response.body?.cancel()
-      return { kind: 'unchanged', url: plain.url, httpValidators }
-    }
-    if (response.status === 404 || response.status === 410) {
-      await response.body?.cancel()
-      throw new PageUnavailableError(response.status)
-    }
-    if (response.ok) {
-      const type = response.headers.get('content-type') ?? ''
-      const bytes = await readLimited(response)
-      if (!type.includes('text/html'))
-        return { kind: 'file', url: plain.url, bytes, type, httpValidators }
-      plainHtml = { url: plain.url, html: new TextDecoder().decode(bytes) }
-    } else {
-      await response.body?.cancel()
-      failure = new Error(`Page returned HTTP ${response.status}`)
-      blocked = response.status === 403
-      httpValidators = { etag: null, lastModifiedHeader: null }
-      if (!browser) throw failure
-    }
-  }
-  if (browser) {
-    const page = await loadPage(plainHtml?.url ?? plain?.url ?? url).catch(
-      (error: unknown) => {
-        if (error instanceof PageNotFoundError)
-          throw new PageUnavailableError(error.status)
-        if (error instanceof PageBlockedError) blocked = true
-        else if (!plainHtml) failure = error
-        return null
-      },
-    )
-    if (page) {
-      checkUrl(page.url)
-      return { kind: 'html', ...page, httpValidators }
-    }
-  }
-  if (plainHtml && !isBlockedPage(plainHtml.html))
-    return { kind: 'html', ...plainHtml, loadedBy: 'plain', httpValidators }
-  if (blocked || plainHtml) throw new PageBlockedError()
-  throw failure
+export function readHash(
+  page: Pick<iStagedPage, 'url' | 'title' | 'html' | 'markdown'>,
+) {
+  const { title, blocks } = extractPageBlocks(page)
+  return `${knowledgeFormatVersion}:${createHash('sha256')
+    .update(JSON.stringify([title, blocks]))
+    .digest('hex')}`
 }
 
-// Fetch an unstaged page or confirm a provider checkpoint against the website.
-// Force a full response when old staged content cannot be prepared again.
+// Read a page through the page reader (pageReading/). A page whose content
+// hashes the same as its last read is "unchanged", unless forced or its
+// stored result can't stand as it is.
 export async function fetchPage(
   source: typeof knowledgeSource.$inferSelect,
-  { force = false }: { force?: boolean } = {},
+  { force = false, runId }: { force?: boolean; runId?: string } = {},
 ): Promise<{ page: iStagedPage; unchanged: boolean }> {
   const url = source.canonicalUrl ?? source.inputUrl
   if (!url) throw new Error('Page URL is missing')
@@ -141,60 +69,61 @@ export async function fetchPage(
     isCurrentContentHash(source.contentHash) &&
     !source.archivedAt &&
     source.pageProfile
-  const loaded = await loadWebsitePage(url, {
-    headers: {
-      ...(known && source.etag ? { 'if-none-match': source.etag } : {}),
-      ...(known && source.lastModifiedHeader
-        ? { 'if-modified-since': source.lastModifiedHeader }
+  const [run] = runId
+    ? await db
+        .select({ startedAt: indexRun.startedAt })
+        .from(indexRun)
+        .where(eq(indexRun.id, runId))
+    : []
+  let read: iReadPage
+  try {
+    read = await readPage(url, {
+      kind: isFileUrl(url) ? 'document' : 'page',
+      usage: sourceUsageContext(ownerOf(source), source.id),
+      ...(run?.startedAt
+        ? {
+            websiteRead: {
+              websiteId: source.parentId ?? source.id,
+              startedAt: run.startedAt,
+            },
+          }
         : {}),
-    },
-    checkUrl: (finalUrl) => assertPageScope(scope, finalUrl),
-  })
-  if (loaded.kind === 'unchanged') {
-    if (force || !isCurrentContentHash(source.contentHash) || source.archivedAt)
-      throw new Error('Page returned HTTP 304')
-    return {
-      page: {
-        url: loaded.url,
-        title: source.title ?? loaded.url,
-        httpValidators: {
-          etag: loaded.httpValidators.etag ?? source.etag,
-          lastModifiedHeader:
-            loaded.httpValidators.lastModifiedHeader ??
-            source.lastModifiedHeader,
-        },
-      },
-      unchanged: true,
-    }
+    })
+  } catch (error) {
+    if (error instanceof PageNotFoundError)
+      throw new PageUnavailableError(error.status)
+    throw error
   }
-  const { httpValidators } = loaded
-  if (loaded.kind === 'html')
-    return {
-      page: {
-        url: loaded.url,
-        title: inspectHtml(loaded.html, loaded.url).title,
-        html: loaded.html,
-        httpValidators,
-      },
-      unchanged: false,
-    }
-  const { bytes, type, url: finalUrl } = loaded
+  assertPageScope(scope, read.url)
+  const httpValidators = read.validators
+  const page = await stagedPage(source, read)
+  const hash = readHash(page)
+  return {
+    page: { ...page, httpValidators, readHash: hash },
+    unchanged: Boolean(known) && hash === source.readHash,
+  }
+}
+
+async function stagedPage(
+  source: typeof knowledgeSource.$inferSelect,
+  read: iReadPage,
+): Promise<Pick<iStagedPage, 'url' | 'title' | 'html' | 'markdown'>> {
+  const html = pageHtml(read)
+  if (html !== null)
+    return { url: read.url, title: inspectHtml(html, read.url).title, html }
+  const bytes = pageBytes(read)
   const format = detectDocumentFormat({
     bytes,
-    mimeType: type,
-    fileName: finalUrl,
+    mimeType: read.contentType,
+    fileName: read.url,
   })
   if (format)
     return {
-      page: {
-        url: finalUrl,
-        title: source.title ?? finalUrl,
-        markdown: await extractDocumentText(bytes, format, { url: finalUrl }),
-        httpValidators,
-      },
-      unchanged: false,
+      url: read.url,
+      title: source.title ?? read.url,
+      markdown: await extractDocumentText(bytes, format, { url: read.url }),
     }
   throw new DocumentUnreadableError(
-    unreadableReason({ bytes, mimeType: type, fileName: finalUrl }),
+    unreadableReason({ bytes, mimeType: read.contentType, fileName: read.url }),
   )
 }

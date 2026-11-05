@@ -3,7 +3,6 @@ import { db } from '../../db'
 import { knowledgeConfig } from '../../config/knowledge.config'
 import { indexRun, indexRunItem, knowledgeSource } from '../../db/schema'
 import { advanceIndexRun } from './runOrchestrator'
-import { pageLoadersConfigured } from './pageLoaders'
 import {
   assertFetchableUrl,
   inspectHtml,
@@ -15,6 +14,7 @@ import {
 import { areTwinPages, preferredPage, twinPrefix } from './pageTwins'
 import { isRecordedDuplicate } from './duplicatePages'
 import { ownedBy, ownerOf } from './owner'
+import { sourceUsageContext } from './sourceUsageContext'
 import { planWebsiteScope } from './scopePlan'
 
 type tSource = typeof knowledgeSource.$inferSelect
@@ -219,15 +219,10 @@ async function completeCollection(runId: string, target: tSource) {
 // (discoverPreparedPageLinks), sitemap or not.
 async function discoverPages(runId: string, root: tSource) {
   if (!root.inputUrl) throw new Error('Crawl URL missing')
-  const browser = pageLoadersConfigured()
+  // The page reader renders pages that need it (pageReading/).
   await db
     .update(indexRun)
-    .set({
-      crawlProvider: browser ? 'browser' : 'http',
-      crawlWarning: browser
-        ? null
-        : 'Pages are read without a browser; JavaScript content may be missing.',
-    })
+    .set({ crawlProvider: 'browser', crawlWarning: null })
     .where(eq(indexRun.id, runId))
   if (root.kind === 'webPage') {
     await queuePage(runId, root.id)
@@ -246,7 +241,14 @@ async function discoverPages(runId: string, root: tSource) {
   for (const page of previous)
     if (page.canonicalUrl) urls.add(page.canonicalUrl)
   try {
-    for (const url of await discoverSitemap(root.inputUrl)) urls.add(url)
+    const run = await getRun(runId)
+    for (const url of await discoverSitemap(root.inputUrl, {
+      usage: sourceUsageContext(ownerOf(root), root.id),
+      ...(run?.startedAt
+        ? { websiteRead: { websiteId: root.id, startedAt: run.startedAt } }
+        : {}),
+    }))
+      urls.add(url)
   } catch {
     /* root remains eligible */
   }
@@ -341,7 +343,7 @@ export async function handleCrawlFailure(
   await failCrawl(runId, error)
 }
 
-// Links on a page just read, in the browser's HTML when it loaded there.
+// Links on a page just read, in its HTML as the page reader served it.
 export async function discoverPreparedPageLinks(
   runId: string,
   html: string,

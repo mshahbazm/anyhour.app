@@ -23,13 +23,14 @@ import {
 } from './scopeRules'
 import {
   discoverSitemapPages,
-  fetchPublicUrl,
   inspectHtml,
   isSameWebsite,
   normalizeUrl,
   pathAllowed,
-  readLimited,
+  readSiteFile,
+  type tSitemapRead,
 } from './web'
+import { pageHtml, readPage } from '../pageReading/read'
 
 type tSource = typeof knowledgeSource.$inferSelect
 
@@ -53,25 +54,14 @@ function within<T>(work: Promise<T>, ms: number, fallback: T) {
 
 const xmlParser = new XMLParser({ ignoreAttributes: false })
 
-async function fetchText(url: string, maxBytes: number) {
-  const { response, url: finalUrl } = await fetchPublicUrl(url)
-  if (!response.ok) {
-    await response.body?.cancel()
-    return null
-  }
-  return {
-    url: finalUrl,
-    type: response.headers.get('content-type') ?? '',
-    text: new TextDecoder().decode(await readLimited(response, maxBytes)),
-  }
-}
-
 // The home page: where it ends up, its links (for sites without a sitemap),
 // its language and where its feed is.
-async function readHome(siteUrl: string) {
+async function readHome(siteUrl: string, read: tSitemapRead) {
   try {
-    const page = await fetchText(siteUrl, 5 * 1024 * 1024)
-    if (!page || !page.type.includes('text/html')) return null
+    const home = await readPage(siteUrl, { ...read, kind: 'page' })
+    const html = pageHtml(home)
+    if (html === null) return null
+    const page = { url: home.url, text: html }
     const $ = cheerio.load(page.text)
     const feeds = $(
       'link[rel~="alternate"][type="application/rss+xml"], link[rel~="alternate"][type="application/atom+xml"]',
@@ -98,11 +88,11 @@ async function readHome(siteUrl: string) {
 }
 
 // Addresses a feed lists: its articles. RSS items or Atom entries.
-async function readFeed(feedUrl: string) {
+async function readFeed(feedUrl: string, read: tSitemapRead) {
   try {
-    const feed = await fetchText(feedUrl, 2 * 1024 * 1024)
+    const feed = await readSiteFile(feedUrl, read)
     if (!feed) return []
-    const document = xmlParser.parse(feed.text) as {
+    const document = xmlParser.parse(feed) as {
       rss?: { channel?: { item?: unknown } }
       feed?: { entry?: unknown }
     }
@@ -216,6 +206,7 @@ export async function planWebsiteScope(source: tSource): Promise<tSource> {
       const plan = await planScope({
         siteUrl: source.inputUrl,
         excludePaths: source.excludePaths,
+        read: { usage: sourceUsageContext(ownerOf(source), source.id) },
         onAiUsage: (usage) => recordScopeUsage(source, usage),
       })
       rules = plan.rules
@@ -296,13 +287,16 @@ export type tDecidedBy = 'free' | 'ai' | 'none'
 export async function planScope(input: {
   siteUrl: string
   excludePaths: string[]
+  /** Who pays for reading the website (scripts leave it out). */
+  read?: tSitemapRead
   /** Leave out to skip the decision call (free evidence only). */
   onAiUsage?: (usage: iDecisionUsage) => Promise<void>
 }) {
+  const read = input.read ?? {}
   // The home page first: where it redirects to ("gymshark.com" serves its
   // shop from "us.checkout.gymshark.com") is the website we plan.
   const home = await within(
-    readHome(input.siteUrl),
+    readHome(input.siteUrl, read),
     planTimeLimits.pageMs,
     null,
   )
@@ -315,7 +309,7 @@ export async function planScope(input: {
     pathAllowed(`${origin}${path}`, [], input.excludePaths)
   // Too large, unreadable or slow: plan from the home page instead.
   const sitemap = await within(
-    discoverSitemapPages(siteUrl),
+    discoverSitemapPages(siteUrl, read),
     planTimeLimits.sitemapMs,
     new Map<string, string>(),
   )
@@ -325,7 +319,9 @@ export async function planScope(input: {
   const feedPaths = new Set(
     (
       await Promise.all(
-        feeds.map((feed) => within(readFeed(feed), planTimeLimits.pageMs, [])),
+        feeds.map((feed) =>
+          within(readFeed(feed, read), planTimeLimits.pageMs, []),
+        ),
       )
     )
       .flat()

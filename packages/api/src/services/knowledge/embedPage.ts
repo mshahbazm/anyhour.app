@@ -211,6 +211,7 @@ export async function embedPage(runId: string, sourceId: string) {
             title: page.title,
             evidenceUrl: page.url,
             ...(page.httpValidators ?? {}),
+            ...(page.readHash ? { readHash: page.readHash } : {}),
             resultStartedAt: run.startedAt,
             cleanedText: page.preparedText,
             contentHash: hash,

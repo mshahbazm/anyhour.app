@@ -4,8 +4,8 @@ import { once } from 'node:events'
 import { test } from 'bun:test'
 import { eq, inArray } from 'drizzle-orm'
 
-// A real website read the way a customer's is: the real worker, Cloudflare's
-// browser, Jev and embeddings, with the keys in .env. Only the page limit is
+// A real website read the way a customer's is: the real worker, the page
+// reader (Spider), the decision provider and embeddings, with the keys in .env. Only the page limit is
 // small, so it finishes in a minute or two. Run with `bun run test:crawl`
 // when the reading code changes.
 const site = 'https://xvelopers.com'
@@ -137,12 +137,21 @@ test(
             pages.map(({ id }) => id),
           ),
         )
+      let readCost = 0
+      let totalCost = 0
       for (const page of pages) {
         const events = usage.filter((event) => event.sourceId === page.id)
         if (!events.length) continue
+        const reads = events.filter((event) => event.kind === 'pageRead')
+        const pageRead = reads.reduce((sum, e) => sum + Number(e.costUsd), 0)
+        const pageTotal = events.reduce((sum, e) => sum + Number(e.costUsd), 0)
+        readCost += pageRead
+        totalCost += pageTotal
         console.log(
-          `${page.url ?? page.id} cleanup ${page.cleanupStatus ?? '-'}: ` +
+          `${page.url ?? page.id} read ${reads.map((e) => e.model).join(' > ') || '-'} ` +
+            `($${pageRead.toFixed(6)}), total $${pageTotal.toFixed(6)}, cleanup ${page.cleanupStatus ?? '-'}: ` +
             events
+              .filter((event) => event.kind !== 'pageRead')
               .map(
                 (event) =>
                   `${event.kind} ${event.provider}/${event.model} ${event.inputTokens} in (${event.cachedInputTokens} cached) $${Number(event.costUsd).toFixed(6)}`,
@@ -150,6 +159,9 @@ test(
               .join('; '),
         )
       }
+      console.log(
+        `Reading $${readCost.toFixed(6)}, everything $${totalCost.toFixed(6)}`,
+      )
       if (run.startedAt && run.completedAt)
         console.log(
           `Read in ${((run.completedAt.getTime() - run.startedAt.getTime()) / 1000).toFixed(1)}s`,

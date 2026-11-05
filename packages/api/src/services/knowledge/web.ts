@@ -1,11 +1,14 @@
 import { lookup } from 'node:dns/promises'
-import { request as httpRequest } from 'node:http'
-import { request as httpsRequest } from 'node:https'
 import { isIP } from 'node:net'
-import { Readable } from 'node:stream'
 import * as cheerio from 'cheerio'
 import { XMLParser } from 'fast-xml-parser'
 import { ApiError } from '../http/apiError'
+import {
+  pageText,
+  PageNotFoundError,
+  readPage,
+  type iReadOptions,
+} from '../pageReading/read'
 
 const trackingParams = new Set(['fbclid', 'gclid', 'msclkid'])
 
@@ -128,112 +131,6 @@ export async function assertFetchableUrl(value: string) {
   await resolveFetchable(new URL(normalizeUrl(value)))
 }
 
-async function requestPinned(url: URL, headers: Record<string, string>) {
-  const address = await resolveFetchable(url)
-  const request = url.protocol === 'https:' ? httpsRequest : httpRequest
-  const pinnedUrl = new URL(url)
-  pinnedUrl.hostname =
-    address.family === 6 ? `[${address.address}]` : address.address
-  return new Promise<Response>((resolve, reject) => {
-    const signal = AbortSignal.timeout(20_000)
-    const req = request(
-      pinnedUrl,
-      {
-        servername: url.hostname,
-        headers: {
-          'user-agent': 'AnyhourBot/1.0',
-          ...headers,
-          host: url.host,
-        },
-        signal,
-      },
-      (incoming) => {
-        const responseHeaders = new Headers()
-        for (const [key, value] of Object.entries(incoming.headers)) {
-          if (value !== undefined)
-            responseHeaders.set(
-              key,
-              Array.isArray(value) ? value.join(', ') : value,
-            )
-        }
-        const status = incoming.statusCode ?? 500
-        if ([204, 205, 304].includes(status)) incoming.resume()
-        const body = [204, 205, 304].includes(status)
-          ? null
-          : (Readable.toWeb(incoming) as unknown as ReadableStream<Uint8Array>)
-        resolve(
-          new Response(body, {
-            status,
-            headers: responseHeaders,
-          }),
-        )
-      },
-    )
-    req.on('error', reject)
-    // The signal alone doesn't stop a connection that never opens (seen
-    // under Bun), and destroying the request then reports no error.
-    setTimeout(() => {
-      const error = new Error('Website did not answer in time')
-      reject(error)
-      req.destroy(error)
-    }, 20_000).unref()
-    req.end()
-  })
-}
-
-export async function fetchPublicUrl(
-  value: string,
-  headers: Record<string, string> = {},
-) {
-  let current = new URL(normalizeUrl(value))
-  for (let redirect = 0; redirect < 5; redirect += 1) {
-    const response = await requestPinned(current, headers)
-    if ([301, 302, 303, 307, 308].includes(response.status)) {
-      const location = response.headers.get('location')
-      if (!location) throw new Error('Redirect without location')
-      await response.body?.cancel()
-      current = new URL(location, current)
-      continue
-    }
-    // Keep the document location intact: a trailing slash changes how relative
-    // links resolve. Callers normalize source identity separately.
-    return { response, url: current.toString() }
-  }
-  throw new Error('Too many redirects')
-}
-
-export async function readLimited(
-  response: Response,
-  maxBytes = 10 * 1024 * 1024,
-) {
-  const length = Number(response.headers.get('content-length') ?? '0')
-  if (length > maxBytes) {
-    await response.body?.cancel()
-    throw new Error('Source is too large')
-  }
-  const reader = response.body?.getReader()
-  if (!reader) return new Uint8Array()
-  const chunks: Uint8Array[] = []
-  let size = 0
-  while (true) {
-    const { value, done } = await reader.read()
-    if (done) break
-    size += value.length
-    if (size > maxBytes) {
-      await reader.cancel()
-      throw new Error('Source is too large')
-    }
-    chunks.push(value)
-  }
-  const result = new Uint8Array(size)
-  let position = 0
-  for (const chunk of chunks) {
-    result.set(chunk, position)
-    position += chunk.length
-  }
-  return result
-}
-
 export function inspectHtml(html: string, pageUrl: string) {
   const $ = cheerio.load(html)
   let baseUrl = pageUrl
@@ -264,8 +161,22 @@ export function inspectHtml(html: string, pageUrl: string) {
 
 const xmlParser = new XMLParser({ ignoreAttributes: false })
 
-export async function discoverSitemap(siteUrl: string) {
-  const pages = await discoverSitemapPages(siteUrl)
+/** Who pays for reading a website's sitemaps (pageReading/read.ts). */
+export type tSitemapRead = Omit<iReadOptions, 'kind'>
+
+// A small text file of the website (sitemap, robots.txt, feed), or null when
+// it isn't there.
+export async function readSiteFile(url: string, read: tSitemapRead) {
+  try {
+    return pageText(await readPage(url, { ...read, kind: 'sitemap' }))
+  } catch (error) {
+    if (error instanceof PageNotFoundError) return null
+    throw error
+  }
+}
+
+export async function discoverSitemap(siteUrl: string, read: tSitemapRead) {
+  const pages = await discoverSitemapPages(siteUrl, read)
   return [...new Set([...pages.keys(), normalizeUrl(siteUrl)])]
 }
 
@@ -278,7 +189,10 @@ function sameProtocol(root: URL, value: string) {
     : value
 }
 
-export async function discoverSitemapPages(siteUrl: string) {
+export async function discoverSitemapPages(
+  siteUrl: string,
+  read: tSitemapRead,
+) {
   const root = new URL(siteUrl)
   const pending = [
     new URL('/sitemap.xml', root).toString(),
@@ -287,13 +201,11 @@ export async function discoverSitemapPages(siteUrl: string) {
   const seen = new Set<string>()
   const pages = new Map<string, string>()
   try {
-    const { response } = await fetchPublicUrl(
+    const robots = await readSiteFile(
       new URL('/robots.txt', root).toString(),
+      read,
     )
-    if (response.ok) {
-      const robots = new TextDecoder().decode(
-        await readLimited(response, 1024 * 1024),
-      )
+    if (robots) {
       for (const match of robots.matchAll(/^sitemap:\s*(\S+)/gim)) {
         try {
           const url = normalizeUrl(match[1])
@@ -302,7 +214,7 @@ export async function discoverSitemapPages(siteUrl: string) {
           // Ignore malformed sitemap references.
         }
       }
-    } else await response.body?.cancel()
+    }
   } catch {
     // The website can still be discovered from its links.
   }
@@ -313,14 +225,9 @@ export async function discoverSitemapPages(siteUrl: string) {
     if (seen.has(value)) continue
     seen.add(value)
     try {
-      const { response } = await fetchPublicUrl(value)
-      if (!response.ok) {
-        await response.body?.cancel()
-        continue
-      }
-      const document = xmlParser.parse(
-        new TextDecoder().decode(await readLimited(response)),
-      ) as {
+      const text = await readSiteFile(value, read)
+      if (!text) continue
+      const document = xmlParser.parse(text) as {
         sitemapindex?: { sitemap?: { loc: string } | Array<{ loc: string }> }
         urlset?: { url?: { loc: string } | Array<{ loc: string }> }
       }

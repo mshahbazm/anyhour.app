@@ -18,7 +18,7 @@ export const fixtureJpeg =
   'iigAooooAKKKKAP//Z'
 
 // Local protocol fixtures keep the HTTP/worker integration independent of paid
-// services. Without Cloudflare, websites are read with plain requests.
+// services. Websites are read through the page reader (Spider).
 export function startRolesProviders() {
   const objects = new Map<string, ArrayBuffer>()
   const server = Bun.serve({

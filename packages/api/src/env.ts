@@ -7,6 +7,10 @@ import {
   vendorKeys,
   type tVendor,
 } from './config/models.config'
+import {
+  pageReaderProviderIds,
+  pageReaderProviderVendors,
+} from './config/pageReaders.config'
 
 const httpUrl = z
   .url()
@@ -43,9 +47,10 @@ const envSchema = z.object({
   R2_BUCKET: z.string().min(1).optional(),
   R2_ACCESS_KEY_ID: z.string().min(1).optional(),
   R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
-  // Empty means not configured: pages are then read without a browser.
-  CLOUDFLARE_ACCOUNT_ID: optionalText,
-  CLOUDFLARE_API_TOKEN: optionalText,
+  // Who reads customers' websites (docs/pageReading.md); its vendor key is
+  // required. Our own server never fetches a customer's site.
+  PAGE_READER_PROVIDER: z.enum(pageReaderProviderIds).default('spider'),
+  SPIDER_API_KEY: optionalText,
   // Pages one website reads at most; later per plan.
   MAX_WEBSITE_PAGES: z.coerce.number().int().positive().default(500),
   // Who answers typed judgments (page cleanup, website scope).
@@ -73,13 +78,14 @@ const result = envSchema
     const selected = [
       llmProviderVendors[value.LLM_PROVIDER],
       decisionProviderVendors[value.DECISION_PROVIDER],
+      pageReaderProviderVendors[value.PAGE_READER_PROVIDER],
     ]
     for (const name of new Set(selected.map((vendor) => vendorKeys[vendor])))
       if (!value[name])
         context.addIssue({
           code: 'custom',
           path: [name],
-          message: 'Required by the selected AI provider',
+          message: 'Required by a selected provider',
         })
   })
   .safeParse({

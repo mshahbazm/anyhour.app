@@ -34,6 +34,8 @@ export interface iStagedPage {
   profileAttempted?: boolean
   pendingProfileUsage?: iPreparationUsage
   httpValidators?: { etag: string | null; lastModifiedHeader: string | null }
+  /** fetchPage `readHash`: what the read served, before cleanup. */
+  readHash?: string
 }
 
 export function pageStageKey(runId: string, sourceId: string) {

@@ -82,6 +82,9 @@ export const knowledgeSource = pgTable(
       reason?: string
     }>(),
     contentHash: text('content_hash'),
+    // What the last read served, before cleanup (pageReading.md): the same
+    // hash on the next read skips cleanup, the profile and embeddings.
+    readHash: text('read_hash'),
     cleanedCharCount: integer('cleaned_char_count'),
     status: text('status', {
       enum: [

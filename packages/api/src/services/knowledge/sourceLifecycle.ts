@@ -19,6 +19,7 @@ export type tSourceFailure = {
 export interface iSourceCheckMetadata {
   evidenceUrl?: string
   httpValidators?: { etag: string | null; lastModifiedHeader: string | null }
+  readHash?: string
 }
 
 // The caller must lock the run and claim its terminal item before calling this
@@ -48,6 +49,7 @@ export async function recordSourceCheck(
         resultStartedAt: runStartedAt,
         ...(metadata?.evidenceUrl ? { evidenceUrl: metadata.evidenceUrl } : {}),
         ...metadata?.httpValidators,
+        ...(metadata?.readHash ? { readHash: metadata.readHash } : {}),
         lastAttemptStatus: 'unchanged',
         lastError: null,
         status: 'ready',
@@ -115,6 +117,7 @@ export async function recordSourceCheck(
             pageActions: [],
             etag: null,
             lastModifiedHeader: null,
+            readHash: null,
             cleanupStatus: null,
             cleanupStats: null,
             contentDeletedAt: now,

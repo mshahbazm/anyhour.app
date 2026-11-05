@@ -41,7 +41,7 @@ export async function reconcileWebsitePaths(
         .set({
           status,
           ...(status === 'pending'
-            ? { etag: null, lastModifiedHeader: null }
+            ? { etag: null, lastModifiedHeader: null, readHash: null }
             : {}),
         })
         .where(inArray(knowledgeSource.id, ids.slice(start, start + 1000)))

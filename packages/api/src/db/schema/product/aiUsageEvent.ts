@@ -52,6 +52,10 @@ export const aiUsageEvent = pgTable(
         'businessHours',
         'noteDrafts',
         'contactDetails',
+        // One attempt at reading a website page, sitemap or document
+        // (services/pageReading/); `model` is the attempt, the cost the
+        // reader's own.
+        'pageRead',
       ],
     }).notNull(),
     provider: text('provider').notNull(),

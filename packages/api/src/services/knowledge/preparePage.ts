@@ -8,7 +8,7 @@ import { knowledgeFormatVersion } from './cleanup/formatBlocks'
 import { DecisionDeferred } from '../ai/decisions'
 import { createPageProfile } from './cleanup/pageProfile'
 import { PageUnavailableError } from './pageFailure'
-import { PageBlockedError } from './pageLoaders'
+import { PageBlockedError } from '../pageReading/read'
 import { finishIndexItem, failIndexItem } from './runOrchestrator'
 import { dispatchRunRequest } from './runRequests'
 import {
@@ -66,8 +66,15 @@ export async function preparePage(runId: string, sourceId: string) {
     let page: iStagedPage
     if (checkpoint) page = checkpoint
     else {
-      const result = await fetchPage(source)
+      const result = await fetchPage(source, { runId })
       if (result.unchanged) {
+        // Its links still count: a page added to it since is found.
+        if (result.page.html)
+          await discoverPreparedPageLinks(
+            runId,
+            result.page.html,
+            result.page.url,
+          )
         const finished = await finishIndexItem(
           runId,
           sourceId,
@@ -79,6 +86,7 @@ export async function preparePage(runId: string, sourceId: string) {
           {
             evidenceUrl: result.page.url,
             httpValidators: result.page.httpValidators,
+            readHash: result.page.readHash,
           },
         )
         if (finished) await syncStoredProfileChunk(sourceId)
@@ -99,14 +107,14 @@ export async function preparePage(runId: string, sourceId: string) {
       source.deleteAfter <= now &&
       !source.contentDeletedAt
     )
-      page = (await fetchPage(source)).page
+      page = (await fetchPage(source, { runId })).page
     if (page.httpStatus === 404 || page.httpStatus === 410)
       throw new PageUnavailableError(page.httpStatus)
     // Old prepared checkpoints no longer have the HTML needed to recover exact
     // anchor positions. Fetch afresh rather than marking plain text as upgraded.
     if (page.formatVersion !== knowledgeFormatVersion) {
       if (!page.html && page.markdown === undefined)
-        page = (await fetchPage(source, { force: true })).page
+        page = (await fetchPage(source, { force: true, runId })).page
       else
         page = {
           url: page.url,
@@ -114,6 +122,7 @@ export async function preparePage(runId: string, sourceId: string) {
           html: page.html,
           markdown: page.markdown,
           httpValidators: page.httpValidators,
+          readHash: page.readHash,
         }
     }
     if (page.html) await discoverPreparedPageLinks(runId, page.html, page.url)
@@ -129,6 +138,7 @@ export async function preparePage(runId: string, sourceId: string) {
         title: extracted.title,
         blocks: extracted.blocks,
         httpValidators: page.httpValidators,
+        readHash: page.readHash,
         ...(page.preparedText
           ? {
               preparedText: page.preparedText,

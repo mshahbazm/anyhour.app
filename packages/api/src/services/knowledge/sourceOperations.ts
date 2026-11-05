@@ -302,6 +302,7 @@ async function preserveDetachedKnowledge(
             contentHash: null,
             etag: null,
             lastModifiedHeader: null,
+            readHash: null,
           }
         : {}),
     })
@@ -365,6 +366,7 @@ export async function deleteKnowledgeSource(
           pageActions: [],
           etag: null,
           lastModifiedHeader: null,
+          readHash: null,
         })
         .where(eq(knowledgeSource.id, sourceId))
       await deleteOrphanSharedBlocks(tx, source.parentId!)

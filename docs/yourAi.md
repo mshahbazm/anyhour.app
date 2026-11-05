@@ -19,7 +19,7 @@ Knowledge has one layer, **Your business**: the website, files and notes, scoped
 
 ### Which website pages are read
 
-A website teaches the business, not its blog. Every website is read page by page from our own list (`services/knowledge/crawl.ts`): known pages first (the address, earlier pages, the sitemap), each loaded through `services/knowledge/pageLoaders/` after a plain request, every loaded page's links followed through the same rules, up to `maxWebsitePages` (500). Bot-protection pages fail the page, never become content.
+A website teaches the business, not its blog. Every website is read page by page from our own list (`services/knowledge/crawl.ts`): known pages first (the address, earlier pages, the sitemap), each read through the page reader (`services/pageReading/`, docs/pageReading.md; never from our own server), every loaded page's links followed through the same rules, up to `maxWebsitePages` (500). Bot-protection pages fail the page, never become content.
 
 Before a new website's first read (`services/knowledge/scopePlan.ts`), articles, listings and other-language copies become ordinary exclude rules, from free evidence first (sitemap names, the feed, dated paths, archive folders) and one Jev call for undecided groups on larger sites. It runs once, never on refreshes, and the source page lists the rules it added. Try it without reading: `bun run scope:preview example.com` in `packages/api`.
 
