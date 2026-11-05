@@ -1,3 +1,4 @@
+import { startSpiderStandIn } from '../fixtures/rolesProviders'
 import { createWithOwnWebsite } from '../fixtures/ownWebsite'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
@@ -29,7 +30,6 @@ test('page and website scopes share durable ingestion without moving the refresh
   let failNextStageWrite = false
   let stageWriteFailures = 0
   let missingStageReads = 0
-  let conditionalDocumentResponses = 0
   let redirectRendered = false
   let raceVersion = 1
   let stageWriteHook: ((key: string) => Promise<void>) | undefined
@@ -134,13 +134,6 @@ test('page and website scopes share durable ingestion without moving the refresh
           { headers: { 'content-type': 'text/html' } },
         )
       if (url.pathname === '/document') {
-        if (req.headers.get('if-none-match') === '"document-v1"') {
-          conditionalDocumentResponses++
-          return new Response(null, {
-            status: 304,
-            headers: { etag: '"document-v1"' },
-          })
-        }
         return new Response(`Public document information, ${tag}.`, {
           headers: {
             'content-type': 'text/plain',
@@ -169,6 +162,8 @@ test('page and website scopes share durable ingestion without moving the refresh
   })
   const apiOrigin = `http://127.0.0.1:${server.port}`
   Object.assign(process.env, {
+    // Websites are read through a stand-in Spider.
+    ...startSpiderStandIn().env,
     NODE_ENV: 'test',
     PORT: String(server.port),
     BETTER_AUTH_URL: apiOrigin,
@@ -407,12 +402,24 @@ test('page and website scopes share durable ingestion without moving the refresh
       storedDocument.lastModifiedHeader,
       'Wed, 01 Jan 2025 00:00:00 GMT',
     )
-    const profilesBeforeConditional = profileCalls
-    const embeddingsBeforeConditional = embeddingCalls
+    // Read again unchanged (the same read hash): no new profile or embeddings.
+    const profilesBeforeUnchanged = profileCalls
+    const embeddingsBeforeUnchanged = embeddingCalls
+    const documentReadsBeforeUnchanged = originGets.filter(
+      (path) => path === '/document',
+    ).length
     await waitRun((await refresh(document.source.id)).id)
-    assert.equal(conditionalDocumentResponses, 1)
-    assert.equal(profileCalls, profilesBeforeConditional)
-    assert.equal(embeddingCalls, embeddingsBeforeConditional)
+    assert(
+      originGets.filter((path) => path === '/document').length >
+        documentReadsBeforeUnchanged,
+      'An unchanged document refresh must still read the document',
+    )
+    assert.equal(
+      (await readSource(document.source.id)).lastAttemptStatus,
+      'unchanged',
+    )
+    assert.equal(profileCalls, profilesBeforeUnchanged)
+    assert.equal(embeddingCalls, embeddingsBeforeUnchanged)
     const documentRuns = await db
       .select({ crawlProvider: indexRun.crawlProvider })
       .from(indexRun)

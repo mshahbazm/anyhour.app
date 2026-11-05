@@ -276,7 +276,7 @@ test('cleanup and profile accounting resume saved provider work and deduplicate 
     boss.send = send
     await db
       .delete(aiUsageEvent)
-      .where(eq(aiUsageEvent.assistantId, assistantId))
+      .where(eq(aiUsageEvent.organizationId, organizationId))
     await db
       .delete(indexRun)
       .where(eq(indexRun.organizationId, orgOf(assistantId)))

@@ -1,3 +1,4 @@
+import { startSpiderStandIn } from '../fixtures/rolesProviders'
 import { createWithOwnWebsite } from '../fixtures/ownWebsite'
 import { orgOf } from '../fixtures/knowledgeOwner'
 import assert from 'node:assert/strict'
@@ -110,6 +111,8 @@ test('Reading follows deep links and worker restart repairs durable checkpoints'
   })
   const apiOrigin = `http://127.0.0.1:${server.port}`
   Object.assign(process.env, {
+    // Websites are read through a stand-in Spider.
+    ...startSpiderStandIn().env,
     NODE_ENV: 'test',
     PORT: String(server.port),
     BETTER_AUTH_URL: apiOrigin,

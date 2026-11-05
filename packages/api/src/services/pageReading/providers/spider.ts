@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { knowledgeConfig } from '../../../config/knowledge.config'
-import { vendorKey } from '../../../env'
+import { env, vendorKey } from '../../../env'
 import type {
   iPageReaderProvider,
   iProviderReadContext,
@@ -15,7 +15,7 @@ import type {
 // and https://spider.cloud/llms-full.txt; the response shape and `costs`
 // from the latter ("Response shape").
 
-const endpoint = 'https://api.spider.cloud/scrape'
+const defaultEndpoint = 'https://api.spider.cloud/scrape'
 const settings = knowledgeConfig.pageReading
 
 // Sent with every attempt. `cache: false` reads the website now, not
@@ -100,7 +100,7 @@ async function scrape(
 ) {
   const apiKey = vendorKey('spider')
   if (!apiKey) throw new SpiderError('SPIDER_API_KEY is not set')
-  const response = await fetch(endpoint, {
+  const response = await fetch(env.SPIDER_API_URL ?? defaultEndpoint, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,

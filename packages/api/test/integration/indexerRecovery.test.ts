@@ -67,6 +67,7 @@ test('index completion is counted once and re-included pages await refresh', asy
       contentHash: 'old-hash',
       etag: 'old-etag',
       lastModifiedHeader: 'old-date',
+      readHash: 'old-read-hash',
     })
     await db.insert(indexRun).values({
       id: runId,
@@ -108,6 +109,8 @@ test('index completion is counted once and re-included pages await refresh', asy
     assert.equal(page.status, 'pending')
     assert.equal(page.etag, null)
     assert.equal(page.lastModifiedHeader, null)
+    // Included again, the page is read and prepared afresh.
+    assert.equal(page.readHash, null)
   } finally {
     await db.delete(indexRun).where(eq(indexRun.id, runId))
     await db.delete(knowledgeSource).where(eq(knowledgeSource.id, pageId))

@@ -1,3 +1,4 @@
+import { startSpiderStandIn } from '../fixtures/rolesProviders'
 import { createWithOwnWebsite } from '../fixtures/ownWebsite'
 import { orgOf } from '../fixtures/knowledgeOwner'
 import assert from 'node:assert/strict'
@@ -239,6 +240,8 @@ test('website cleanup preserves shared facts, profiles, retrieval permissions an
   })
   const apiOrigin = `http://127.0.0.1:${server.port}`
   Object.assign(process.env, {
+    // Websites are read through a stand-in Spider.
+    ...startSpiderStandIn().env,
     NODE_ENV: 'test',
     PORT: String(server.port),
     BETTER_AUTH_URL: apiOrigin,

@@ -149,7 +149,8 @@ test('embedding checkpoints survive later provider and publication failures', as
       rejectedText = 'paragraph 128'
       await assert.rejects(
         embedTexts(input, partial.options()),
-        /Fixture rejects/,
+        // The provider's 400, classified (its own message never reaches us).
+        /could not process this request/,
       )
       assert.equal(
         (
@@ -241,7 +242,8 @@ test('embedding checkpoints survive later provider and publication failures', as
           blocks,
           publication.options(),
         ),
-        /Fixture rejects/,
+        // The provider's 400, classified (its own message never reaches us).
+        /could not process this request/,
       )
       rejectedText = undefined
       await embedTexts(content, publication.options())

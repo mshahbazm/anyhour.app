@@ -233,8 +233,8 @@ test('stale failures and delayed archive jobs cannot invalidate restored knowled
     assert.equal(afterDiscovery.status, 'archived')
     assert.equal(afterDiscovery.cleanedText, source.cleanedText)
 
-    // A successful conditional (304) check is fresher evidence even though it
-    // does not replace the content or bump lastIndexedAt.
+    // A successful unchanged read (the same read hash) is fresher evidence
+    // even though it does not replace the content or bump lastIndexedAt.
     const earlierIndex = new Date(Date.now() - 120_000)
     await db
       .update(knowledgeSource)

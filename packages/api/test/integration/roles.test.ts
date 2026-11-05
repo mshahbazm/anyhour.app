@@ -405,11 +405,10 @@ test('product routes, indexing, widget chat, forms, and lead retention work over
           }.</p></main></html>`,
           { headers: { 'content-type': 'text/html' } },
         )
-      if (req.headers.get('if-none-match') === '"root-v1"')
-        return new Response(null, { status: 304 })
+      // The root never changes: refreshes find it unchanged (its read hash).
       return new Response(
         `<html><title>Test plumbing</title><nav>Navigation</nav><main><h1>Test plumbing</h1><p>We repair water heaters in Bristol.</p><a href="/hours">Hours</a></main></html>`,
-        { headers: { 'content-type': 'text/html', etag: '"root-v1"' } },
+        { headers: { 'content-type': 'text/html' } },
       )
     },
   })

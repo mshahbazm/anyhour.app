@@ -1,3 +1,4 @@
+import { startSpiderStandIn } from '../fixtures/rolesProviders'
 import { orgOf } from '../fixtures/knowledgeOwner'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
@@ -38,6 +39,8 @@ test('source operations preserve pinned evidence, recover upload cleanup, and se
   })
   const origin = `http://127.0.0.1:${server.port}`
   Object.assign(process.env, {
+    // Websites are read through a stand-in Spider.
+    ...startSpiderStandIn().env,
     NODE_ENV: 'test',
     PORT: String(server.port),
     BETTER_AUTH_URL: origin,

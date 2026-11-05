@@ -1,3 +1,4 @@
+import { startSpiderStandIn } from '../fixtures/rolesProviders'
 import { createWithOwnWebsite } from '../fixtures/ownWebsite'
 import { orgOf } from '../fixtures/knowledgeOwner'
 import assert from 'node:assert/strict'
@@ -25,8 +26,7 @@ test('action links survive ingestion, shared retrieval, chat and URL-only refres
   let profileGoal = 'Book'
   let profileRequests = 0
   let fixtureOrigin = '',
-    freshGets = 0,
-    conditionalGets = 0
+    freshGets = 0
   const html = (path: string) =>
     `<html><title>${path === '/' ? 'Home' : 'Services'}</title><main>${
       path === '/'
@@ -139,13 +139,6 @@ test('action links survive ingestion, shared retrieval, chat and URL-only refres
           headers: { location: '/services/' },
         })
       if (url.pathname === '/' || url.pathname === '/services/') {
-        if (
-          req.headers.has('if-none-match') ||
-          req.headers.has('if-modified-since')
-        ) {
-          conditionalGets++
-          return new Response(null, { status: 304 })
-        }
         freshGets++
         return new Response(html(url.pathname), {
           headers: { 'content-type': 'text/html' },
@@ -165,6 +158,8 @@ test('action links survive ingestion, shared retrieval, chat and URL-only refres
   try {
     const apiOrigin = `http://127.0.0.1:${server.port}`
     Object.assign(process.env, {
+      // Websites are read through a stand-in Spider.
+      ...startSpiderStandIn().env,
       NODE_ENV: 'test',
       PORT: String(server.port),
       BETTER_AUTH_URL: apiOrigin,
@@ -511,21 +506,27 @@ test('action links survive ingestion, shared retrieval, chat and URL-only refres
           .length,
         1,
       )
-      // Legacy indexes must bypass matching HTTP validators to get fresh content.
+      // A legacy index is prepared again even though the page reads the same
+      // (its read hash matches): its stored result can't stand as it is.
+      const storedReadHash = async () =>
+        (
+          await db
+            .select({ readHash: knowledgeSource.readHash })
+            .from(knowledgeSource)
+            .where(eq(knowledgeSource.id, service.id))
+        )[0]?.readHash
+      const legacyReadHash = await storedReadHash()
+      assert(legacyReadHash, 'The page was stored without its read hash')
       await db
         .update(knowledgeSource)
-        .set({
-          contentHash: 'legacy-text-hash',
-          etag: 'old-etag',
-          lastModifiedHeader: 'Wed, 01 Jan 2025 00:00:00 GMT',
-        })
+        .set({ contentHash: 'legacy-text-hash' })
         .where(eq(knowledgeSource.id, service.id))
       const beforeFresh = freshGets
       const pageRefresh = await request(`/sources/${service.id}/runs`, 'POST')
       assert.equal(pageRefresh.status, 202)
       await waitRun(((await pageRefresh.json()) as { id: string }).id)
       assert(freshGets > beforeFresh)
-      assert.equal(conditionalGets, 0)
+      assert.equal(await storedReadHash(), legacyReadHash)
       assert(
         (await readSource(service.id)).contentHash?.startsWith(
           `${knowledgeFormatVersion}:`,

@@ -1,3 +1,4 @@
+import { startSpiderStandIn } from '../fixtures/rolesProviders'
 import { createWithOwnWebsite } from '../fixtures/ownWebsite'
 import { orgOf } from '../fixtures/knowledgeOwner'
 import assert from 'node:assert/strict'
@@ -165,6 +166,8 @@ test('Website pages pass through preparation and embedding via the live API and 
   const apiOrigin = `http://127.0.0.1:${apiPort}`
   process.env.BETTER_AUTH_URL = apiOrigin
   Object.assign(process.env, {
+    // Websites are read through a stand-in Spider.
+    ...startSpiderStandIn().env,
     NODE_ENV: 'test',
     OPENAI_API_KEY: 'fixture-key',
     OPENAI_BASE_URL: `http://127.0.0.1:${provider.port}/v1`,

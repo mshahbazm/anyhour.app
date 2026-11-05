@@ -51,6 +51,11 @@ const envSchema = z.object({
   // required. Our own server never fetches a customer's site.
   PAGE_READER_PROVIDER: z.enum(pageReaderProviderIds).default('spider'),
   SPIDER_API_KEY: optionalText,
+  // Another Spider scrape endpoint (a self-hosted or stand-in one); its API by default.
+  SPIDER_API_URL: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    httpUrl.optional(),
+  ),
   // Pages one website reads at most; later per plan.
   MAX_WEBSITE_PAGES: z.coerce.number().int().positive().default(500),
   // Who answers typed judgments (page cleanup, website scope).

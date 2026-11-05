@@ -17,8 +17,90 @@ export const fixtureJpeg =
   'ooooAKKKKACiiigAooooAKKKKACiiigAooooA5uiiivqz5MKKKKACiiigAooooAKKKKACi' +
   'iigAooooAKKKKAP//Z'
 
+// What one stand-in Spider read reports it cost, in USD.
+export const spiderReadCostUsd = 0.00001
+
+/**
+ * A stand-in for Spider's `POST /scrape` (SPIDER_API_URL): real Spider can't
+ * reach the fixture websites on 127.0.0.1, so this reads the requested
+ * address itself and answers in Spider's response shape: one page, `content`
+ * per `return_format` (raw text, or bytes as numbers), the website's
+ * `status`, its headers with `return_headers`, and `costs`. Every `request`
+ * mode (smart, browser, http) and stealth read the same way.
+ */
+export async function spiderScrape(request: Request) {
+  if (!request.headers.get('authorization')?.startsWith('Bearer '))
+    return new Response('Missing API key', { status: 401 })
+  const body = (await request.json()) as {
+    url: string
+    return_format?: 'raw' | 'bytes'
+    return_headers?: boolean
+  }
+  const costs = {
+    total_cost: spiderReadCostUsd,
+    compute_cost: 0,
+    bytes_transfer_cost: spiderReadCostUsd,
+    file_cost: 0,
+    ai_cost: 0,
+  }
+  let response: Response
+  try {
+    response = await fetch(body.url, { signal: AbortSignal.timeout(20_000) })
+  } catch {
+    // Spider couldn't reach the website: no status, an error, nothing billed.
+    return Response.json([
+      {
+        url: body.url,
+        content: null,
+        error: 'Website unreachable',
+        costs: null,
+      },
+    ])
+  }
+  const content =
+    body.return_format === 'bytes'
+      ? Array.from(new Uint8Array(await response.arrayBuffer()))
+      : await response.text()
+  return Response.json([
+    {
+      url: response.url || body.url,
+      content,
+      status: response.status,
+      error: null,
+      ...(body.return_headers
+        ? { headers: Object.fromEntries(response.headers) }
+        : {}),
+      costs,
+    },
+  ])
+}
+
+/** The env that points the page reader at a stand-in Spider at `origin`. */
+export const spiderStandInEnv = (origin: string) => ({
+  PAGE_READER_PROVIDER: 'spider',
+  SPIDER_API_KEY: 'fixture-key',
+  SPIDER_API_URL: `${origin}/scrape`,
+})
+
+/**
+ * A stand-in Spider of its own, for tests with their own provider fixtures:
+ * assign `env` to process.env before the app loads.
+ */
+export function startSpiderStandIn() {
+  const server = Bun.serve({
+    hostname: '127.0.0.1',
+    port: 0,
+    fetch: (request) =>
+      new URL(request.url).pathname === '/scrape' && request.method === 'POST'
+        ? spiderScrape(request)
+        : new Response('Unknown fixture request', { status: 404 }),
+  })
+  server.unref()
+  return { server, env: spiderStandInEnv(`http://127.0.0.1:${server.port}`) }
+}
+
 // Local protocol fixtures keep the HTTP/worker integration independent of paid
-// services. Websites are read through the page reader (Spider).
+// services. Websites are read through a stand-in Spider (spiderScrape).
 export function startRolesProviders() {
   const objects = new Map<string, ArrayBuffer>()
   const server = Bun.serve({
@@ -47,6 +129,8 @@ export function startRolesProviders() {
           ? new Response(objects.get(url.pathname))
           : new Response('Missing fixture object', { status: 404 })
       }
+      if (url.pathname === '/scrape' && request.method === 'POST')
+        return spiderScrape(request)
       if (url.pathname === '/v1/embeddings') {
         const { input } = (await request.json()) as { input: string[] }
         return Response.json({
@@ -150,6 +234,7 @@ export function startRolesProviders() {
       TYPESAFE_API_KEY: 'fixture-key',
       DECISION_PROVIDER: 'typesafe',
       TYPESAFE_API_URL: `${origin}/jev`,
+      ...spiderStandInEnv(origin),
     },
   }
 }
