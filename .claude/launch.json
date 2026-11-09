@@ -4,14 +4,29 @@
     {
       "name": "api",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "dev:api"],
+      "runtimeArgs": [
+        "run",
+        "dev:api"
+      ],
       "port": 3001
     },
     {
       "name": "web",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "dev:web"],
+      "runtimeArgs": [
+        "run",
+        "dev:web"
+      ],
       "port": 3000
+    },
+    {
+      "name": "worker",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "dev:worker"
+      ],
+      "port": 3009
     }
   ]
 }
